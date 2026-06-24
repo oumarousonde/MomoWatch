@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MomoWatch — Surveille. Notifie. Simplifie.</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --orange: #FF7900;
+    --orange-light: #FF9A3C;
+    --noir: #0E0E0E;
+    --gris-fonce: #1A1A1A;
+    --gris-moyen: #2A2A2A;
+    --gris-texte: #9A9A9A;
+    --blanc: #FFFFFF;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--noir);
+    color: var(--blanc);
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+
+  /* ── NAV ── */
+  nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 32px;
+    background: rgba(14,14,14,0.92);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid #222;
+  }
+  nav img { height: 36px; }
+  nav a {
+    background: var(--orange);
+    color: var(--blanc);
+    padding: 9px 22px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 14px;
+    transition: background 0.2s;
+  }
+  nav a:hover { background: var(--orange-light); }
+
+  /* ── HERO ── */
+  .hero {
+    min-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 80px 24px 60px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(255,121,0,0.15) 0%, transparent 70%);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -60%);
+    pointer-events: none;
+  }
+  .hero-badge {
+    display: inline-block;
+    background: rgba(255,121,0,0.12);
+    border: 1px solid rgba(255,121,0,0.3);
+    color: var(--orange);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 6px 16px;
+    border-radius: 100px;
+    margin-bottom: 28px;
+  }
+  .hero h1 {
+    font-size: clamp(36px, 7vw, 72px);
+    font-weight: 800;
+    line-height: 1.1;
+    max-width: 760px;
+    margin-bottom: 20px;
+  }
+  .hero h1 span { color: var(--orange); }
+  .hero p {
+    font-size: clamp(15px, 2vw, 18px);
+    color: var(--gris-texte);
+    max-width: 520px;
+    margin-bottom: 40px;
+  }
+  .hero-cta {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .btn-primary {
+    background: var(--orange);
+    color: var(--blanc);
+    padding: 14px 32px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 15px;
+    transition: background 0.2s, transform 0.15s;
+  }
+  .btn-primary:hover { background: var(--orange-light); transform: translateY(-1px); }
+  .btn-secondary {
+    background: transparent;
+    color: var(--blanc);
+    padding: 14px 32px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 15px;
+    border: 1px solid #333;
+    transition: border-color 0.2s;
+  }
+  .btn-secondary:hover { border-color: var(--orange); color: var(--orange); }
+
+  /* ── STATS ── */
+  .stats {
+    display: flex;
+    justify-content: center;
+    gap: 0;
+    flex-wrap: wrap;
+    border-top: 1px solid #1E1E1E;
+    border-bottom: 1px solid #1E1E1E;
+    background: var(--gris-fonce);
+  }
+  .stat {
+    flex: 1;
+    min-width: 140px;
+    text-align: center;
+    padding: 28px 16px;
+    border-right: 1px solid #222;
+  }
+  .stat:last-child { border-right: none; }
+  .stat-val {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--orange);
+  }
+  .stat-label {
+    font-size: 12px;
+    color: var(--gris-texte);
+    margin-top: 4px;
+  }
+
+  /* ── COMMENT ÇA MARCHE ── */
+  .section { padding: 80px 24px; max-width: 1000px; margin: 0 auto; }
+  .section-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--orange);
+    margin-bottom: 12px;
+  }
+  .section h2 {
+    font-size: clamp(26px, 4vw, 42px);
+    font-weight: 800;
+    margin-bottom: 48px;
+    max-width: 560px;
+  }
+
+  .steps { display: flex; flex-direction: column; gap: 0; }
+  .step {
+    display: flex;
+    gap: 28px;
+    align-items: flex-start;
+    padding: 28px 0;
+    border-bottom: 1px solid #1A1A1A;
+  }
+  .step:last-child { border-bottom: none; }
+  .step-num {
+    flex-shrink: 0;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: rgba(255,121,0,0.1);
+    border: 1px solid rgba(255,121,0,0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--orange);
+  }
+  .step-content h3 { font-size: 17px; font-weight: 700; margin-bottom: 6px; }
+  .step-content p { font-size: 14px; color: var(--gris-texte); line-height: 1.6; }
+
+  /* ── FONCTIONNALITÉS ── */
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+  }
+  .feature-card {
+    background: var(--gris-fonce);
+    border: 1px solid #222;
+    border-radius: 12px;
+    padding: 24px;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+  .feature-card:hover { border-color: rgba(255,121,0,0.4); transform: translateY(-2px); }
+  .feature-icon {
+    font-size: 28px;
+    margin-bottom: 14px;
+  }
+  .feature-card h3 { font-size: 15px; font-weight: 700; margin-bottom: 8px; }
+  .feature-card p { font-size: 13px; color: var(--gris-texte); line-height: 1.6; }
+
+  /* ── NOTIFICATION PREVIEW ── */
+  .preview-section {
+    background: var(--gris-fonce);
+    border-top: 1px solid #1E1E1E;
+    border-bottom: 1px solid #1E1E1E;
+    padding: 80px 24px;
+  }
+  .preview-inner { max-width: 1000px; margin: 0 auto; display: flex; gap: 60px; align-items: center; flex-wrap: wrap; }
+  .preview-text { flex: 1; min-width: 260px; }
+  .preview-text h2 { font-size: clamp(24px, 3.5vw, 38px); font-weight: 800; margin-bottom: 16px; }
+  .preview-text p { font-size: 14px; color: var(--gris-texte); line-height: 1.7; }
+  .preview-phone {
+    flex: 1;
+    min-width: 260px;
+    display: flex;
+    justify-content: center;
+  }
+  .telegram-notif {
+    background: #212121;
+    border-radius: 16px;
+    padding: 20px;
+    width: 280px;
+    border: 1px solid #2E2E2E;
+  }
+  .tg-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .tg-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--orange);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+  }
+  .tg-name { font-size: 13px; font-weight: 700; }
+  .tg-sub { font-size: 11px; color: var(--gris-texte); }
+  .tg-message {
+    background: #1A1A1A;
+    border-radius: 12px;
+    padding: 14px;
+    font-size: 13px;
+    line-height: 1.6;
+    border-left: 3px solid var(--orange);
+  }
+  .tg-time { font-size: 11px; color: var(--gris-texte); text-align: right; margin-top: 8px; }
+
+  /* ── TARIFS ── */
+  .tarifs-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+    margin-top: 0;
+  }
+  .tarif-card {
+    background: var(--gris-fonce);
+    border: 1px solid #222;
+    border-radius: 14px;
+    padding: 28px 24px;
+    position: relative;
+  }
+  .tarif-card.popular {
+    border-color: var(--orange);
+  }
+  .popular-badge {
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--orange);
+    color: var(--blanc);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 14px;
+    border-radius: 100px;
+    white-space: nowrap;
+  }
+  .tarif-nom { font-size: 13px; font-weight: 600; color: var(--gris-texte); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.08em; }
+  .tarif-prix { font-size: 32px; font-weight: 800; margin-bottom: 4px; }
+  .tarif-prix span { font-size: 14px; font-weight: 400; color: var(--gris-texte); }
+  .tarif-desc { font-size: 13px; color: var(--gris-texte); margin-bottom: 20px; }
+  .tarif-liste { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+  .tarif-liste li { font-size: 13px; color: #ccc; display: flex; gap: 8px; align-items: flex-start; }
+  .tarif-liste li::before { content: '✓'; color: var(--orange); font-weight: 700; flex-shrink: 0; }
+
+  /* ── FOOTER ── */
+  footer {
+    padding: 40px 24px;
+    text-align: center;
+    border-top: 1px solid #1A1A1A;
+  }
+  footer img { height: 32px; margin-bottom: 10px; }
+  footer p { font-size: 12px; color: var(--gris-texte); }
+
+  /* ── MOBILE ── */
+  @media (max-width: 600px) {
+    nav { padding: 12px 16px; }
+    .section { padding: 56px 16px; }
+    .preview-inner { flex-direction: column; gap: 36px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <img src="logo.png" alt="MomoWatch">
+  <a href="dashboard.html">Accéder au tableau de bord</a>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-badge">Notifications en temps réel</div>
+  <h1>Votre boutique sous <span>surveillance</span>, où que vous soyez.</h1>
+  <p>MomoWatch détecte chaque retrait et dépôt sur votre ligne Orange Money, Moov Money, Coris Money, Wave, Telecel Money ou Sank Money — et vous notifie instantanément sur Telegram, sans intermédiaire.</p>
+  <div class="hero-cta">
+    <a href="dashboard.html" class="btn-primary">Voir le tableau de bord →</a>
+    <a href="#comment" class="btn-secondary">Comment ça marche</a>
+  </div>
+</section>
+
+<!-- STATS -->
+<div class="stats">
+  <div class="stat">
+    <div class="stat-val">&lt; 5s</div>
+    <div class="stat-label">Délai de notification</div>
+  </div>
+  <div class="stat">
+    <div class="stat-val">24/7</div>
+    <div class="stat-label">Surveillance continue</div>
+  </div>
+  <div class="stat">
+    <div class="stat-val">6+</div>
+    <div class="stat-label">Opérateurs supportés</div>
+  </div>
+  <div class="stat">
+    <div class="stat-val">0</div>
+    <div class="stat-label">Intermédiaire humain</div>
+  </div>
+</div>
+
+<!-- COMMENT ÇA MARCHE -->
+<div class="section" id="comment">
+  <div class="section-label">Comment ça marche</div>
+  <h2>Simple à installer, automatique à l'usage.</h2>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-content">
+        <h3>Un téléphone dédié en boutique</h3>
+        <p>La puce SIM (Orange Money, Moov Money, Coris Money, Wave, Telecel Money, Sank Money...) est insérée dans un téléphone Android posé en boutique. MomoWatch est installé dessus — personne n'y touche ensuite.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-content">
+        <h3>Détection automatique des SMS</h3>
+        <p>Dès qu'un retrait ou un dépôt est effectué, l'opérateur envoie un SMS sur la ligne. MomoWatch le lit instantanément et extrait les informations clés : client, montant, type d'opération.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-content">
+        <h3>Notification immédiate sur Telegram</h3>
+        <p>En moins de 5 secondes, vous recevez un message Telegram sur votre téléphone personnel, où que vous soyez. Telegram est gratuit et fonctionne aussi bien sur téléphone que sur ordinateur.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-content">
+        <h3>Bilan complet sur le tableau de bord</h3>
+        <p>En fin de journée, consultez l'historique complet, filtrez par opérateur ou par client, visualisez les totaux et exportez en Excel pour votre comptabilité.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- NOTIFICATION PREVIEW -->
+<div class="preview-section">
+  <div class="preview-inner">
+    <div class="preview-text">
+      <div class="section-label">Notification Telegram</div>
+      <h2>Vous savez en 5 secondes.</h2>
+      <p>Chaque transaction génère une notification claire et immédiate sur votre Telegram. Vous n'avez rien à faire — le système s'en charge automatiquement, 24h/24, 7j/7, même quand vous dormez.</p>
+    </div>
+    <div class="preview-phone">
+      <div class="telegram-notif">
+        <div class="tg-header">
+          <div class="tg-avatar">🔔</div>
+          <div>
+            <div class="tg-name">MomoWatch</div>
+            <div class="tg-sub">bot • maintenant</div>
+          </div>
+        </div>
+        <div class="tg-message">
+          🔔 MomoWatch — Orange Money<br>
+          <strong>Moussa Traoré</strong> — Retrait de <strong>25 000 FCFA</strong>
+        </div>
+        <div class="tg-time">Il y a quelques secondes ✓✓</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FONCTIONNALITÉS -->
+<div class="section">
+  <div class="section-label">Fonctionnalités</div>
+  <h2>Tout ce dont vous avez besoin.</h2>
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon">⚡</div>
+      <h3>Temps réel</h3>
+      <p>Notification en moins de 5 secondes après chaque transaction, sans action de votre part.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📊</div>
+      <h3>Tableau de bord</h3>
+      <p>Historique complet, filtres par opérateur, par type, par date ou par client. Accessible sur téléphone et ordinateur.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🏆</div>
+      <h3>Top clients</h3>
+      <p>Visualisez vos clients les plus actifs, leurs montants cumulés et leur fréquence de passage.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📥</div>
+      <h3>Export Excel</h3>
+      <p>Téléchargez vos transactions filtrées en un clic pour votre comptabilité ou vos archives.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📱</div>
+      <h3>Multi-opérateurs</h3>
+      <p>Orange Money, Moov Money, Coris Money, Wave, Telecel Money, Sank Money — toutes vos lignes sur un seul tableau de bord.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔒</div>
+      <h3>Sécurisé</h3>
+      <p>Chaque boutique voit uniquement ses propres données. Aucun accès croisé entre clients.</p>
+    </div>
+  </div>
+</div>
+
+<!-- TARIFS -->
+<div class="section">
+  <div class="section-label">Abonnement</div>
+  <h2>Un tarif clair, sans surprise.</h2>
+  <div class="tarifs-grid">
+    <div class="tarif-card">
+      <div class="tarif-nom">Basic</div>
+      <div class="tarif-prix">2 000 <span>FCFA / mois</span></div>
+      <div class="tarif-desc">Pour débuter avec les notifications</div>
+      <ul class="tarif-liste">
+        <li>Notifications Telegram en temps réel</li>
+        <li>Orange Money, Moov, Coris, Wave, Telecel, Sank</li>
+        <li>1 ligne SIM</li>
+      </ul>
+    </div>
+    <div class="tarif-card popular">
+      <div class="popular-badge">Le plus choisi</div>
+      <div class="tarif-nom">Pro</div>
+      <div class="tarif-prix">5 000 <span>FCFA / mois</span></div>
+      <div class="tarif-desc">Pour piloter votre boutique à distance</div>
+      <ul class="tarif-liste">
+        <li>Tout le Basic</li>
+        <li>Tableau de bord complet</li>
+        <li>Top clients & comparaisons</li>
+        <li>Export Excel</li>
+        <li>Jusqu'à 2 lignes SIM</li>
+      </ul>
+    </div>
+    <div class="tarif-card">
+      <div class="tarif-nom">Multi-lignes</div>
+      <div class="tarif-prix">8 000 <span>FCFA / mois</span></div>
+      <div class="tarif-desc">Pour les boutiques multi-opérateurs</div>
+      <ul class="tarif-liste">
+        <li>Tout le Pro</li>
+        <li>Lignes SIM illimitées</li>
+        <li>Plusieurs téléphones boutique</li>
+        <li>Support prioritaire</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <img src="logo.png" alt="MomoWatch">
+  <p>Gardez un œil sur votre boutique, où que vous soyez.<br>
+  © 2026 MomoWatch. Tous droits réservés.</p>
+</footer>
+
+</body>
+</html>

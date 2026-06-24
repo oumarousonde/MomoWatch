@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MomoWatch — Tableau de bord</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background: #f5f5f5;
+        margin: 0;
+        padding: 0;
+    }
+    header {
+        background: #1a1a1a;
+        color: white;
+        padding: 20px;
+        text-align: center;
+    }
+    header h1 { margin: 0; font-size: 22px; }
+    header p { margin: 4px 0 0; font-size: 13px; opacity: 0.9; }
+
+    .conteneur { padding: 16px; max-width: 600px; margin: 0 auto; }
+
+    .filtres {
+        background: white;
+        border-radius: 10px;
+        padding: 16px;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+        margin-bottom: 16px;
+    }
+    .filtres label { display: block; font-size: 13px; margin-top: 10px; color: #555; }
+    .filtres select, .filtres input {
+        width: 100%;
+        padding: 10px;
+        margin-top: 4px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 14px;
+        box-sizing: border-box;
+    }
+    .filtres button {
+        width: 100%;
+        margin-top: 16px;
+        padding: 12px;
+        background: #FF7900;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-size: 15px;
+        font-weight: bold;
+    }
+
+    .resultat {
+        background: white;
+        border-radius: 10px;
+        padding: 16px;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+        text-align: center;
+    }
+    .resultat .montant { font-size: 28px; font-weight: bold; color: #FF7900; }
+    .resultat .nombre { font-size: 13px; color: #777; margin-top: 4px; }
+
+    .liste { margin-top: 16px; }
+    .ligne {
+        background: white;
+        padding: 10px 14px;
+        border-radius: 8px;
+        margin-bottom: 8px;
+        display: flex;
+        justify-content: space-between;
+        font-size: 14px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+</style>
+</head>
+<body>
+
+<header>
+    <img src="logo.png" alt="MomoWatch" style="height:80px; margin-bottom:8px;">
+    <p style="margin:0; font-size:13px; opacity:0.9;">Gardez un œil sur votre boutique, où que vous soyez.</p>
+</header>
+
+<div class="conteneur">
+
+    <div class="filtres">
+        <label>Opérateur</label>
+        <select id="operateur">
+            <option value="">Tous</option>
+            <option value="Orange Money">Orange Money</option>
+            <option value="Moov Money">Moov Money</option>
+            <option value="Coris Money">Coris Money</option>
+            <option value="Wave">Wave</option>
+            <option value="Telecel Money">Telecel Money</option>
+            <option value="Sank Money">Sank Money</option>
+        </select>
+
+        <label>Type d'opération</label>
+        <select id="type">
+            <option value="">Tous</option>
+            <option value="Retrait">Retrait</option>
+            <option value="Dépôt">Dépôt</option>
+        </select>
+
+        <label>Nom du client</label>
+        <input type="text" id="client" placeholder="Ex: Moussa">
+
+        <label>Date</label>
+        <input type="date" id="date">
+
+        <button onclick="chargerBilan()">Voir le bilan</button>
+    </div>
+
+    <div class="resultat">
+        <div class="montant" id="montantTotal">0 FCFA</div>
+        <div class="nombre" id="nombreTransactions">0 transaction(s)</div>
+    </div>
+
+    <div class="liste" id="listeTransactions"></div>
+
+</div>
+
+<script>
+    // Remplace par l'URL de ton projet Vercel une fois déployé
+    const URL_API = "https://TON-PROJET.vercel.app/api/summary";
+
+    async function chargerBilan() {
+        const operateur = document.getElementById("operateur").value;
+        const type = document.getElementById("type").value;
+        const date = document.getElementById("date").value;
+        const client = document.getElementById("client").value;
+
+        const params = new URLSearchParams();
+        if (operateur) params.append("operateur", operateur);
+        if (type) params.append("type", type);
+        if (date) params.append("date", date);
+        if (client) params.append("client", client);
+
+        try {
+            const reponse = await fetch(`${URL_API}?${params.toString()}`);
+            const data = await reponse.json();
+
+            document.getElementById("montantTotal").textContent =
+                data.total_montant.toLocaleString("fr-FR") + " FCFA";
+            document.getElementById("nombreTransactions").textContent =
+                data.nombre_transactions + " transaction(s)";
+
+            const liste = document.getElementById("listeTransactions");
+            liste.innerHTML = "";
+            data.transactions.forEach(t => {
+                const ligne = document.createElement("div");
+                ligne.className = "ligne";
+                ligne.innerHTML = `<span>${t.client} — ${t.type}</span><span>${Number(t.montant).toLocaleString("fr-FR")} FCFA</span>`;
+                liste.appendChild(ligne);
+            });
+
+        } catch (erreur) {
+            alert("Erreur de chargement. Vérifie que l'URL_API est bien configurée.");
+            console.error(erreur);
+        }
+    }
+
+    // Charge le bilan général au premier affichage
+    chargerBilan();
+</script>
+
+</body>
+</html>
