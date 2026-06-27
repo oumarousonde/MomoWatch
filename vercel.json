@@ -1,11 +1,9 @@
 {
   "version": 2,
-  "functions": {
-    "api/transaction.py": {
-      "runtime": "python@3.12"
-    },
-    "api/webhook.py": {
-      "runtime": "python@3.12"
+  "builds": [
+    {
+      "src": "api/*.py",
+      "use": "@vercel/python"
     }
-  }
+  ]
 }
