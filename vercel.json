@@ -2,10 +2,10 @@
   "version": 2,
   "functions": {
     "api/transaction.py": {
-      "runtime": "python3.12"
+      "runtime": "python@3.12"
     },
     "api/webhook.py": {
-      "runtime": "python3.12"
+      "runtime": "python@3.12"
     }
   }
 }
