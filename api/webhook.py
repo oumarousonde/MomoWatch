@@ -1,8 +1,9 @@
+import os
 from http.server import BaseHTTPRequestHandler
 import json
 import urllib.request
 
-TOKEN = "5001711820:AAHTjwHu1uh7LIhokrAtFVBDSTH7RoMSCg8"
+TOKEN = os.environ.get("TELEGRAM_TOKEN", "")
 
 def envoyer_message(chat_id, texte):
     url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
