@@ -2,7 +2,7 @@ from http.server import BaseHTTPRequestHandler
 import json
 import urllib.request
 
-TOKEN = "5001711820:AAFrixWiu4YtIamVGCVW6HvMWBRqKiLysnQ"
+TOKEN = "5001711820:AAHTjwHu1uh7LIhokrAtFVBDSTH7RoMSCg8"
 
 def envoyer_message(chat_id, texte):
     url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
