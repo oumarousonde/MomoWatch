@@ -87,15 +87,15 @@
         <label>Opérateur</label>
         <select id="operateur">
             <option value="">Tous</option>
-            <option value="Orange Money">Orange Money</option>
-            <option value="Moov Money">Moov Money</option>
-            <option value="Coris Money">Coris Money</option>
-            <option value="Wave">Wave</option>
-            <option value="Telecel Money">Telecel Money</option>
-            <option value="Sank Money">Sank Money</option>
         </select>
+        <div style="display:flex;gap:8px;margin-top:6px">
+            <input type="text" id="nouvelOperateur" placeholder="Ajouter un opérateur..." 
+                   style="flex:1;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:13px">
+            <button onclick="ajouterOperateur()" 
+                    style="background:#FF7900;color:white;border:none;border-radius:6px;padding:8px 14px;font-size:13px;cursor:pointer">+</button>
+        </div>
 
-        <label>Type d'opération</label>
+        <label style="margin-top:12px">Type d'opération</label>
         <select id="type">
             <option value="">Tous</option>
             <option value="Retrait">Retrait</option>
@@ -160,7 +160,34 @@
         }
     }
 
-    // Charge le bilan général au premier affichage
+    // Gestion des opérateurs dynamiques (sauvegardés dans localStorage)
+    function chargerOperateurs() {
+        const operateurs = JSON.parse(localStorage.getItem("operateurs") || "[]");
+        const select = document.getElementById("operateur");
+        select.innerHTML = '<option value="">Tous</option>';
+        operateurs.forEach(op => {
+            const option = document.createElement("option");
+            option.value = op;
+            option.textContent = op;
+            select.appendChild(option);
+        });
+    }
+
+    function ajouterOperateur() {
+        const input = document.getElementById("nouvelOperateur");
+        const nom = input.value.trim();
+        if (!nom) return;
+        const operateurs = JSON.parse(localStorage.getItem("operateurs") || "[]");
+        if (!operateurs.includes(nom)) {
+            operateurs.push(nom);
+            localStorage.setItem("operateurs", JSON.stringify(operateurs));
+            chargerOperateurs();
+        }
+        input.value = "";
+    }
+
+    // Initialisation
+    chargerOperateurs();
     chargerBilan();
 </script>
 
