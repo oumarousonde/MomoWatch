@@ -1,21 +1,30 @@
-import os
 from http.server import BaseHTTPRequestHandler
 import json
+import os
 import urllib.request
 
-TOKEN = os.environ.get("TELEGRAM_TOKEN", "")
-CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "")
+SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
+SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
 
-def envoyer_telegram(texte):
-    url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
-    payload = json.dumps({"chat_id": CHAT_ID, "text": texte}).encode("utf-8")
+def sauvegarder_transaction(client, montant, type_op, operateur):
+    url = f"{SUPABASE_URL}/rest/v1/transactions"
+    payload = json.dumps({
+        "client": client,
+        "montant": float(str(montant).replace(" ", "")),
+        "type": type_op,
+        "operateur": operateur
+    }).encode("utf-8")
     req = urllib.request.Request(
         url, data=payload,
-        headers={"Content-Type": "application/json"},
+        headers={
+            "Content-Type": "application/json",
+            "apikey": SUPABASE_KEY,
+            "Authorization": f"Bearer {SUPABASE_KEY}",
+            "Prefer": "return=minimal"
+        },
         method="POST"
     )
-    with urllib.request.urlopen(req) as r:
-        return json.loads(r.read().decode("utf-8"))
+    urllib.request.urlopen(req)
 
 class handler(BaseHTTPRequestHandler):
     def do_POST(self):
@@ -28,12 +37,7 @@ class handler(BaseHTTPRequestHandler):
             type_op = data.get("type", "operation")
             operateur = data.get("operateur", "")
 
-            message = (
-                f"MomoWatch - {operateur}\n"
-                f"{client} - {type_op} de {montant} FCFA"
-            )
-
-            envoyer_telegram(message)
+            sauvegarder_transaction(client, montant, type_op, operateur)
             self._rep(200, {"statut": "ok"})
 
         except Exception as e:
@@ -45,5 +49,6 @@ class handler(BaseHTTPRequestHandler):
     def _rep(self, code, data):
         self.send_response(code)
         self.send_header("Content-Type", "application/json")
+        self.send_header("Access-Control-Allow-Origin", "*")
         self.end_headers()
         self.wfile.write(json.dumps(data).encode("utf-8"))
