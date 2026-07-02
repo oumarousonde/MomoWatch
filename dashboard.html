@@ -10,205 +10,126 @@
   :root {
     --orange: #FF7900;
     --noir: #0E0E0E;
-    --gris-fonce: #1A1A1A;
-    --gris-moyen: #2A2A2A;
-    --gris-texte: #9A9A9A;
+    --gf: #1A1A1A;
+    --gm: #2A2A2A;
+    --gt: #9A9A9A;
     --blanc: #FFFFFF;
     --vert: #4CAF50;
     --rouge: #F44336;
   }
-  body {
-    font-family: 'Inter', sans-serif;
-    background: var(--noir);
-    color: var(--blanc);
-    min-height: 100vh;
-  }
+  body { font-family: 'Inter', sans-serif; background: var(--noir); color: var(--blanc); min-height: 100vh; }
 
-  /* NAV */
   nav {
-    background: var(--gris-fonce);
-    border-bottom: 1px solid #222;
-    padding: 14px 20px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    position: sticky;
-    top: 0;
-    z-index: 100;
+    background: var(--gf); border-bottom: 1px solid #222;
+    padding: 14px 20px; display: flex; align-items: center;
+    justify-content: space-between; position: sticky; top: 0; z-index: 100;
   }
   .nav-logo { display: flex; align-items: center; gap: 10px; }
   .nav-logo img { height: 32px; }
-  .nav-logo-text { font-size: 16px; font-weight: 800; }
-  .nav-logo-text span { color: var(--orange); }
-  .nav-statut {
-    display: flex; align-items: center; gap: 6px;
-    font-size: 12px; color: var(--gris-texte);
-  }
-  .point-vert { width: 8px; height: 8px; border-radius: 50%; background: var(--vert); }
+  .nav-titre { font-size: 16px; font-weight: 800; }
+  .nav-titre span { color: var(--orange); }
+  .statut { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--gt); }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--vert); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
 
-  /* CONTENEUR */
-  .conteneur { max-width: 700px; margin: 0 auto; padding: 16px; }
+  .page { max-width: 680px; margin: 0 auto; padding: 16px; }
 
-  /* CARTES STATS */
-  .stats-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
-    margin-bottom: 16px;
-  }
-  .stat-card {
-    background: var(--gris-fonce);
-    border: 1px solid #222;
-    border-radius: 12px;
-    padding: 16px;
-  }
-  .stat-label { font-size: 11px; color: var(--gris-texte); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.08em; }
-  .stat-val { font-size: 22px; font-weight: 800; color: var(--orange); }
-  .stat-sous { font-size: 11px; color: var(--gris-texte); margin-top: 3px; }
+  /* STATS */
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+  .stat { background: var(--gf); border: 1px solid #222; border-radius: 12px; padding: 16px; }
+  .stat-label { font-size: 11px; color: var(--gt); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
+  .stat-val { font-size: 20px; font-weight: 800; color: var(--orange); }
+  .stat-nb { font-size: 11px; color: var(--gt); margin-top: 4px; }
 
   /* FILTRES */
-  .filtres {
-    background: var(--gris-fonce);
-    border: 1px solid #222;
-    border-radius: 12px;
-    padding: 16px;
-    margin-bottom: 16px;
+  .filtres { background: var(--gf); border: 1px solid #222; border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+  .f-titre { font-size: 13px; font-weight: 700; color: var(--orange); margin-bottom: 12px; }
+  .f-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+  .f-champ { display: flex; flex-direction: column; gap: 4px; }
+  .f-champ label { font-size: 11px; color: var(--gt); }
+  .f-champ select, .f-champ input {
+    background: #111; border: 1px solid #333; border-radius: 8px;
+    padding: 9px 12px; color: var(--blanc); font-size: 13px;
+    font-family: 'Inter', sans-serif; width: 100%;
   }
-  .filtres-titre {
-    font-size: 13px; font-weight: 700;
-    margin-bottom: 12px; color: var(--orange);
+  .f-op { display: flex; gap: 6px; }
+  .f-op select { flex: 1; }
+  .btn-plus {
+    background: var(--gm); color: var(--orange); border: 1px solid #333;
+    border-radius: 8px; padding: 9px 13px; font-size: 16px; cursor: pointer;
   }
-  .filtres-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    margin-bottom: 10px;
+  .btn-voir {
+    width: 100%; background: var(--orange); color: var(--blanc);
+    border: none; border-radius: 8px; padding: 12px;
+    font-size: 14px; font-weight: 700; cursor: pointer; font-family: 'Inter', sans-serif;
   }
-  .champ { display: flex; flex-direction: column; gap: 4px; }
-  .champ label { font-size: 11px; color: var(--gris-texte); }
-  .champ select, .champ input {
-    background: #111;
-    border: 1px solid #333;
-    border-radius: 8px;
-    padding: 9px 12px;
-    color: var(--blanc);
-    font-size: 13px;
-    font-family: 'Inter', sans-serif;
-    width: 100%;
-  }
-  .champ-operateur { display: flex; gap: 6px; }
-  .champ-operateur select { flex: 1; }
-  .btn-ajouter {
-    background: var(--gris-moyen);
-    color: var(--orange);
-    border: 1px solid #333;
-    border-radius: 8px;
-    padding: 9px 12px;
-    font-size: 14px;
-    cursor: pointer;
-  }
-  .btn-filtrer {
-    width: 100%;
-    background: var(--orange);
-    color: var(--blanc);
-    border: none;
-    border-radius: 8px;
-    padding: 12px;
-    font-size: 14px;
-    font-weight: 700;
-    cursor: pointer;
-    font-family: 'Inter', sans-serif;
-  }
+  .btn-voir:active { opacity: 0.85; }
 
-  /* LISTE TRANSACTIONS */
-  .section-titre {
-    font-size: 13px; font-weight: 700;
-    margin-bottom: 10px;
+  /* LISTE */
+  .liste-header {
     display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 10px;
   }
-  .badge-nombre {
-    background: var(--orange);
-    color: var(--blanc);
-    font-size: 11px;
-    padding: 2px 8px;
-    border-radius: 100px;
+  .liste-titre { font-size: 13px; font-weight: 700; }
+  .badge {
+    background: var(--orange); color: var(--blanc);
+    font-size: 11px; font-weight: 700;
+    padding: 2px 10px; border-radius: 100px;
   }
   .liste { display: flex; flex-direction: column; gap: 8px; }
-  .transaction {
-    background: var(--gris-fonce);
-    border: 1px solid #222;
-    border-radius: 10px;
-    padding: 12px 14px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+  .tx {
+    background: var(--gf); border: 1px solid #222; border-radius: 10px;
+    padding: 12px 14px; display: flex; justify-content: space-between; align-items: center;
   }
-  .transaction-gauche { display: flex; gap: 10px; align-items: center; }
-  .transaction-icon {
-    width: 36px; height: 36px; border-radius: 8px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 16px;
+  .tx-g { display: flex; gap: 10px; align-items: center; }
+  .tx-ico {
+    width: 38px; height: 38px; border-radius: 9px;
+    display: flex; align-items: center; justify-content: center; font-size: 17px;
   }
-  .icon-retrait { background: rgba(244,67,54,0.1); }
-  .icon-depot { background: rgba(76,175,80,0.1); }
-  .transaction-client { font-size: 14px; font-weight: 600; }
-  .transaction-info { font-size: 11px; color: var(--gris-texte); margin-top: 2px; }
-  .transaction-droite { text-align: right; }
-  .transaction-montant { font-size: 15px; font-weight: 700; }
-  .montant-retrait { color: var(--rouge); }
-  .montant-depot { color: var(--vert); }
-  .transaction-heure { font-size: 11px; color: var(--gris-texte); margin-top: 2px; }
+  .ico-r { background: rgba(244,67,54,0.1); }
+  .ico-d { background: rgba(76,175,80,0.1); }
+  .tx-nom { font-size: 14px; font-weight: 600; }
+  .tx-info { font-size: 11px; color: var(--gt); margin-top: 2px; }
+  .tx-d { text-align: right; }
+  .tx-montant { font-size: 15px; font-weight: 700; }
+  .m-r { color: var(--rouge); }
+  .m-d { color: var(--vert); }
+  .tx-heure { font-size: 11px; color: var(--gt); margin-top: 2px; }
 
-  /* VIDE / CHARGEMENT */
-  .etat-vide {
-    text-align: center; padding: 40px 20px;
-    color: var(--gris-texte); font-size: 13px;
-  }
-  .etat-vide-icon { font-size: 36px; margin-bottom: 10px; }
+  .vide { text-align: center; padding: 40px 20px; color: var(--gt); font-size: 13px; }
+  .vide-ico { font-size: 40px; margin-bottom: 10px; }
+  .loading { text-align: center; padding: 30px; color: var(--gt); font-size: 13px; }
 
-  .chargement {
-    text-align: center; padding: 30px;
-    color: var(--gris-texte); font-size: 13px;
-  }
-
-  /* MODALE AJOUT OPÉRATEUR */
-  .modale {
+  /* MODALE */
+  .overlay {
     display: none; position: fixed; inset: 0;
-    background: rgba(0,0,0,0.7);
-    z-index: 200; align-items: center; justify-content: center;
+    background: rgba(0,0,0,0.75); z-index: 200;
+    align-items: center; justify-content: center;
   }
-  .modale.active { display: flex; }
-  .modale-contenu {
-    background: var(--gris-fonce);
-    border: 1px solid #333;
-    border-radius: 14px;
-    padding: 24px;
-    width: 300px;
+  .overlay.show { display: flex; }
+  .modal {
+    background: var(--gf); border: 1px solid #333;
+    border-radius: 14px; padding: 24px; width: 290px;
   }
-  .modale-titre { font-size: 16px; font-weight: 700; margin-bottom: 16px; }
-  .modale-input {
-    width: 100%; background: #111; border: 1px solid #333;
-    border-radius: 8px; padding: 10px 12px;
-    color: var(--blanc); font-size: 14px; font-family: 'Inter', sans-serif;
-    margin-bottom: 12px;
+  .modal h3 { font-size: 15px; font-weight: 700; margin-bottom: 14px; }
+  .modal input {
+    width: 100%; background: #111; border: 1px solid #333; border-radius: 8px;
+    padding: 10px 12px; color: var(--blanc); font-size: 14px;
+    font-family: 'Inter', sans-serif; margin-bottom: 12px;
   }
-  .modale-btns { display: flex; gap: 8px; }
-  .btn-confirmer {
-    flex: 1; background: var(--orange); color: var(--blanc);
-    border: none; border-radius: 8px; padding: 10px;
-    font-size: 13px; font-weight: 700; cursor: pointer;
-    font-family: 'Inter', sans-serif;
+  .modal-btns { display: flex; gap: 8px; }
+  .btn-ok {
+    flex: 1; background: var(--orange); color: var(--blanc); border: none;
+    border-radius: 8px; padding: 10px; font-size: 13px; font-weight: 700;
+    cursor: pointer; font-family: 'Inter', sans-serif;
   }
-  .btn-annuler {
-    flex: 1; background: #222; color: var(--gris-texte);
-    border: 1px solid #333; border-radius: 8px; padding: 10px;
-    font-size: 13px; cursor: pointer; font-family: 'Inter', sans-serif;
+  .btn-cancel {
+    flex: 1; background: #222; color: var(--gt); border: 1px solid #333;
+    border-radius: 8px; padding: 10px; font-size: 13px;
+    cursor: pointer; font-family: 'Inter', sans-serif;
   }
 
-  @media (max-width: 400px) {
-    .filtres-grid { grid-template-columns: 1fr; }
-    .stats-grid { grid-template-columns: 1fr 1fr; }
-  }
+  @media (max-width: 400px) { .f-grid { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
@@ -216,44 +137,37 @@
 <nav>
   <div class="nav-logo">
     <img src="logo.png" alt="MomoWatch" onerror="this.style.display='none'">
-    <div class="nav-logo-text">Momo<span>Watch</span></div>
+    <div class="nav-titre">Momo<span>Watch</span></div>
   </div>
-  <div class="nav-statut">
-    <div class="point-vert"></div>
-    Actif
-  </div>
+  <div class="statut"><div class="dot"></div>Actif</div>
 </nav>
 
-<div class="conteneur">
+<div class="page">
 
-  <!-- STATS -->
-  <div class="stats-grid">
-    <div class="stat-card">
-      <div class="stat-label">Total aujourd'hui</div>
-      <div class="stat-val" id="totalJour">—</div>
-      <div class="stat-sous" id="nbJour">0 transaction(s)</div>
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-label">Aujourd'hui</div>
+      <div class="stat-val" id="v-jour">—</div>
+      <div class="stat-nb" id="n-jour">—</div>
     </div>
-    <div class="stat-card">
-      <div class="stat-label">Total filtré</div>
-      <div class="stat-val" id="totalFiltre">—</div>
-      <div class="stat-sous" id="nbFiltre">0 transaction(s)</div>
+    <div class="stat">
+      <div class="stat-label">Résultat filtré</div>
+      <div class="stat-val" id="v-filtre">—</div>
+      <div class="stat-nb" id="n-filtre">—</div>
     </div>
   </div>
 
-  <!-- FILTRES -->
   <div class="filtres">
-    <div class="filtres-titre">🔍 Filtres</div>
-    <div class="filtres-grid">
-      <div class="champ">
+    <div class="f-titre">🔍 Filtres</div>
+    <div class="f-grid">
+      <div class="f-champ">
         <label>Opérateur</label>
-        <div class="champ-operateur">
-          <select id="operateur">
-            <option value="">Tous</option>
-          </select>
-          <button class="btn-ajouter" onclick="ouvrirModale()">+</button>
+        <div class="f-op">
+          <select id="operateur"><option value="">Tous</option></select>
+          <button class="btn-plus" onclick="ouvrirModal()">+</button>
         </div>
       </div>
-      <div class="champ">
+      <div class="f-champ">
         <label>Type</label>
         <select id="type">
           <option value="">Tous</option>
@@ -261,170 +175,149 @@
           <option value="Dépôt">Dépôt</option>
         </select>
       </div>
-      <div class="champ">
+      <div class="f-champ">
         <label>Client</label>
         <input type="text" id="client" placeholder="Ex: Moussa">
       </div>
-      <div class="champ">
+      <div class="f-champ">
         <label>Date</label>
         <input type="date" id="date">
       </div>
     </div>
-    <button class="btn-filtrer" onclick="chargerTransactions()">Voir les transactions</button>
+    <button class="btn-voir" onclick="charger()">Voir les transactions</button>
   </div>
 
-  <!-- LISTE -->
-  <div class="section-titre">
-    <span>Transactions</span>
-    <span class="badge-nombre" id="badgeNombre">0</span>
+  <div class="liste-header">
+    <div class="liste-titre">Transactions</div>
+    <div class="badge" id="badge">0</div>
   </div>
-  <div class="liste" id="liste">
-    <div class="chargement">Chargement...</div>
-  </div>
+  <div class="liste" id="liste"><div class="loading">Chargement...</div></div>
 
 </div>
 
-<!-- MODALE AJOUT OPÉRATEUR -->
-<div class="modale" id="modale">
-  <div class="modale-contenu">
-    <div class="modale-titre">Ajouter un opérateur</div>
-    <input class="modale-input" type="text" id="inputOperateur" placeholder="Ex: Orange Money">
-    <div class="modale-btns">
-      <button class="btn-annuler" onclick="fermerModale()">Annuler</button>
-      <button class="btn-confirmer" onclick="ajouterOperateur()">Ajouter</button>
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h3>Ajouter un opérateur</h3>
+    <input type="text" id="inp-op" placeholder="Ex: Orange Money">
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="fermerModal()">Annuler</button>
+      <button class="btn-ok" onclick="ajouterOp()">Ajouter</button>
     </div>
   </div>
 </div>
 
 <script>
-  const URL_API = "/api/summary";
+  function fmt(n) { return Number(n||0).toLocaleString("fr-FR") + " FCFA"; }
+  function fmtDate(s) {
+    if (!s) return "";
+    const d = new Date(s);
+    return d.toLocaleDateString("fr-FR") + " " + d.toLocaleTimeString("fr-FR", {hour:"2-digit",minute:"2-digit"});
+  }
 
-  // Opérateurs sauvegardés
-  function chargerOperateurs() {
-    const ops = JSON.parse(localStorage.getItem("operateurs") || "[]");
-    const select = document.getElementById("operateur");
-    select.innerHTML = '<option value="">Tous</option>';
-    ops.forEach(op => {
-      const o = document.createElement("option");
-      o.value = op; o.textContent = op;
-      select.appendChild(o);
+  function chargerOps() {
+    const ops = JSON.parse(localStorage.getItem("ops") || "[]");
+    const sel = document.getElementById("operateur");
+    const val = sel.value;
+    sel.innerHTML = '<option value="">Tous</option>';
+    ops.forEach(o => {
+      const opt = document.createElement("option");
+      opt.value = opt.textContent = o;
+      sel.appendChild(opt);
     });
+    sel.value = val;
   }
 
-  function ouvrirModale() {
-    document.getElementById("modale").classList.add("active");
-    document.getElementById("inputOperateur").focus();
+  function ouvrirModal() {
+    document.getElementById("overlay").classList.add("show");
+    setTimeout(() => document.getElementById("inp-op").focus(), 100);
   }
-
-  function fermerModale() {
-    document.getElementById("modale").classList.remove("active");
-    document.getElementById("inputOperateur").value = "";
+  function fermerModal() {
+    document.getElementById("overlay").classList.remove("show");
+    document.getElementById("inp-op").value = "";
   }
-
-  function ajouterOperateur() {
-    const nom = document.getElementById("inputOperateur").value.trim();
+  function ajouterOp() {
+    const nom = document.getElementById("inp-op").value.trim();
     if (!nom) return;
-    const ops = JSON.parse(localStorage.getItem("operateurs") || "[]");
-    if (!ops.includes(nom)) {
-      ops.push(nom);
-      localStorage.setItem("operateurs", JSON.stringify(ops));
-      chargerOperateurs();
-    }
-    fermerModale();
+    const ops = JSON.parse(localStorage.getItem("ops") || "[]");
+    if (!ops.includes(nom)) { ops.push(nom); localStorage.setItem("ops", JSON.stringify(ops)); }
+    chargerOps();
+    fermerModal();
   }
 
-  function formaterMontant(montant) {
-    return Number(montant).toLocaleString("fr-FR") + " FCFA";
-  }
+  async function charger(filtre = true) {
+    const operateur = filtre ? document.getElementById("operateur").value : "";
+    const type      = filtre ? document.getElementById("type").value : "";
+    const date      = filtre ? document.getElementById("date").value : "";
+    const client    = filtre ? document.getElementById("client").value : "";
 
-  function formaterDate(dateStr) {
-    if (!dateStr) return "";
-    const d = new Date(dateStr);
-    return d.toLocaleDateString("fr-FR") + " " + d.toLocaleTimeString("fr-FR", {hour:"2-digit", minute:"2-digit"});
-  }
+    const p = new URLSearchParams();
+    if (operateur) p.append("operateur", operateur);
+    if (type)      p.append("type", type);
+    if (date)      p.append("date", date);
+    if (client)    p.append("client", client);
 
-  async function chargerTransactions() {
-    const operateur = document.getElementById("operateur").value;
-    const type = document.getElementById("type").value;
-    const date = document.getElementById("date").value;
-    const client = document.getElementById("client").value;
-
-    const params = new URLSearchParams();
-    if (operateur) params.append("operateur", operateur);
-    if (type) params.append("type", type);
-    if (date) params.append("date", date);
-    if (client) params.append("client", client);
-
-    document.getElementById("liste").innerHTML = '<div class="chargement">Chargement...</div>';
+    document.getElementById("liste").innerHTML = '<div class="loading">Chargement...</div>';
 
     try {
-      const r = await fetch(`${URL_API}?${params.toString()}`);
-      const data = await r.json();
+      const r = await fetch(`/api/summary?${p}`);
+      const d = await r.json();
+      const txs = d.transactions || [];
 
-      document.getElementById("totalFiltre").textContent = formaterMontant(data.total_montant || 0);
-      document.getElementById("nbFiltre").textContent = `${data.nombre_transactions || 0} transaction(s)`;
-      document.getElementById("badgeNombre").textContent = data.nombre_transactions || 0;
+      document.getElementById("v-filtre").textContent = fmt(d.total_montant);
+      document.getElementById("n-filtre").textContent = `${d.nombre_transactions || 0} transaction(s)`;
+      document.getElementById("badge").textContent = d.nombre_transactions || 0;
 
       const liste = document.getElementById("liste");
-      const transactions = data.transactions || [];
-
-      if (transactions.length === 0) {
-        liste.innerHTML = `
-          <div class="etat-vide">
-            <div class="etat-vide-icon">📭</div>
-            Aucune transaction trouvée
-          </div>`;
+      if (txs.length === 0) {
+        liste.innerHTML = `<div class="vide"><div class="vide-ico">📭</div>Aucune transaction trouvée</div>`;
         return;
       }
-
       liste.innerHTML = "";
-      transactions.forEach(t => {
-        const retrait = t.type === "Retrait";
+      txs.forEach(t => {
+        const ret = t.type === "Retrait";
         const div = document.createElement("div");
-        div.className = "transaction";
+        div.className = "tx";
         div.innerHTML = `
-          <div class="transaction-gauche">
-            <div class="transaction-icon ${retrait ? "icon-retrait" : "icon-depot"}">
-              ${retrait ? "📤" : "📥"}
-            </div>
+          <div class="tx-g">
+            <div class="tx-ico ${ret?"ico-r":"ico-d"}">${ret?"📤":"📥"}</div>
             <div>
-              <div class="transaction-client">${t.client || "Inconnu"}</div>
-              <div class="transaction-info">${t.operateur || ""} · ${t.type || ""}</div>
+              <div class="tx-nom">${t.client||"Inconnu"}</div>
+              <div class="tx-info">${t.operateur||""} · ${t.type||""}</div>
             </div>
           </div>
-          <div class="transaction-droite">
-            <div class="transaction-montant ${retrait ? "montant-retrait" : "montant-depot"}">
-              ${retrait ? "-" : "+"}${formaterMontant(t.montant)}
-            </div>
-            <div class="transaction-heure">${formaterDate(t.date_heure)}</div>
+          <div class="tx-d">
+            <div class="tx-montant ${ret?"m-r":"m-d"}">${ret?"-":"+"}${fmt(t.montant)}</div>
+            <div class="tx-heure">${fmtDate(t.date_heure)}</div>
           </div>`;
         liste.appendChild(div);
       });
-
-    } catch (e) {
-      document.getElementById("liste").innerHTML = `
-        <div class="etat-vide">
-          <div class="etat-vide-icon">⚠️</div>
-          Erreur de connexion — vérifie les clés Supabase
-        </div>`;
+    } catch(e) {
+      document.getElementById("liste").innerHTML =
+        `<div class="vide"><div class="vide-ico">⚠️</div>Erreur — vérifie les clés Supabase dans Vercel</div>`;
     }
   }
 
-  async function chargerStatsJour() {
+  async function chargerJour() {
     const auj = new Date().toISOString().split("T")[0];
     try {
-      const r = await fetch(`${URL_API}?date=${auj}`);
-      const data = await r.json();
-      document.getElementById("totalJour").textContent = formaterMontant(data.total_montant || 0);
-      document.getElementById("nbJour").textContent = `${data.nombre_transactions || 0} transaction(s)`;
-    } catch(e) {}
+      const r = await fetch(`/api/summary?date=${auj}`);
+      const d = await r.json();
+      document.getElementById("v-jour").textContent = fmt(d.total_montant);
+      document.getElementById("n-jour").textContent = `${d.nombre_transactions||0} transaction(s)`;
+    } catch(e) {
+      document.getElementById("v-jour").textContent = "—";
+    }
   }
 
-  // Init
-  chargerOperateurs();
-  chargerStatsJour();
-  chargerTransactions();
-</script>
+  // Fermer modale en cliquant dehors
+  document.getElementById("overlay").addEventListener("click", function(e) {
+    if (e.target === this) fermerModal();
+  });
 
+  // Init
+  chargerOps();
+  chargerJour();
+  charger();
+</script>
 </body>
 </html>
