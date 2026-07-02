@@ -5,190 +5,425 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>MomoWatch — Tableau de bord</title>
 <style>
-    body {
-        font-family: Arial, sans-serif;
-        background: #f5f5f5;
-        margin: 0;
-        padding: 0;
-    }
-    header {
-        background: #1a1a1a;
-        color: white;
-        padding: 20px;
-        text-align: center;
-    }
-    header h1 { margin: 0; font-size: 22px; }
-    header p { margin: 4px 0 0; font-size: 13px; opacity: 0.9; }
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --orange: #FF7900;
+    --noir: #0E0E0E;
+    --gris-fonce: #1A1A1A;
+    --gris-moyen: #2A2A2A;
+    --gris-texte: #9A9A9A;
+    --blanc: #FFFFFF;
+    --vert: #4CAF50;
+    --rouge: #F44336;
+  }
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--noir);
+    color: var(--blanc);
+    min-height: 100vh;
+  }
 
-    .conteneur { padding: 16px; max-width: 600px; margin: 0 auto; }
+  /* NAV */
+  nav {
+    background: var(--gris-fonce);
+    border-bottom: 1px solid #222;
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .nav-logo { display: flex; align-items: center; gap: 10px; }
+  .nav-logo img { height: 32px; }
+  .nav-logo-text { font-size: 16px; font-weight: 800; }
+  .nav-logo-text span { color: var(--orange); }
+  .nav-statut {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12px; color: var(--gris-texte);
+  }
+  .point-vert { width: 8px; height: 8px; border-radius: 50%; background: var(--vert); }
 
-    .filtres {
-        background: white;
-        border-radius: 10px;
-        padding: 16px;
-        box-shadow: 0 1px 4px rgba(0,0,0,0.1);
-        margin-bottom: 16px;
-    }
-    .filtres label { display: block; font-size: 13px; margin-top: 10px; color: #555; }
-    .filtres select, .filtres input {
-        width: 100%;
-        padding: 10px;
-        margin-top: 4px;
-        border: 1px solid #ddd;
-        border-radius: 6px;
-        font-size: 14px;
-        box-sizing: border-box;
-    }
-    .filtres button {
-        width: 100%;
-        margin-top: 16px;
-        padding: 12px;
-        background: #FF7900;
-        color: white;
-        border: none;
-        border-radius: 6px;
-        font-size: 15px;
-        font-weight: bold;
-    }
+  /* CONTENEUR */
+  .conteneur { max-width: 700px; margin: 0 auto; padding: 16px; }
 
-    .resultat {
-        background: white;
-        border-radius: 10px;
-        padding: 16px;
-        box-shadow: 0 1px 4px rgba(0,0,0,0.1);
-        text-align: center;
-    }
-    .resultat .montant { font-size: 28px; font-weight: bold; color: #FF7900; }
-    .resultat .nombre { font-size: 13px; color: #777; margin-top: 4px; }
+  /* CARTES STATS */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .stat-card {
+    background: var(--gris-fonce);
+    border: 1px solid #222;
+    border-radius: 12px;
+    padding: 16px;
+  }
+  .stat-label { font-size: 11px; color: var(--gris-texte); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.08em; }
+  .stat-val { font-size: 22px; font-weight: 800; color: var(--orange); }
+  .stat-sous { font-size: 11px; color: var(--gris-texte); margin-top: 3px; }
 
-    .liste { margin-top: 16px; }
-    .ligne {
-        background: white;
-        padding: 10px 14px;
-        border-radius: 8px;
-        margin-bottom: 8px;
-        display: flex;
-        justify-content: space-between;
-        font-size: 14px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-    }
+  /* FILTRES */
+  .filtres {
+    background: var(--gris-fonce);
+    border: 1px solid #222;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  .filtres-titre {
+    font-size: 13px; font-weight: 700;
+    margin-bottom: 12px; color: var(--orange);
+  }
+  .filtres-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .champ { display: flex; flex-direction: column; gap: 4px; }
+  .champ label { font-size: 11px; color: var(--gris-texte); }
+  .champ select, .champ input {
+    background: #111;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 9px 12px;
+    color: var(--blanc);
+    font-size: 13px;
+    font-family: 'Inter', sans-serif;
+    width: 100%;
+  }
+  .champ-operateur { display: flex; gap: 6px; }
+  .champ-operateur select { flex: 1; }
+  .btn-ajouter {
+    background: var(--gris-moyen);
+    color: var(--orange);
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 9px 12px;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .btn-filtrer {
+    width: 100%;
+    background: var(--orange);
+    color: var(--blanc);
+    border: none;
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+  }
+
+  /* LISTE TRANSACTIONS */
+  .section-titre {
+    font-size: 13px; font-weight: 700;
+    margin-bottom: 10px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .badge-nombre {
+    background: var(--orange);
+    color: var(--blanc);
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 100px;
+  }
+  .liste { display: flex; flex-direction: column; gap: 8px; }
+  .transaction {
+    background: var(--gris-fonce);
+    border: 1px solid #222;
+    border-radius: 10px;
+    padding: 12px 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .transaction-gauche { display: flex; gap: 10px; align-items: center; }
+  .transaction-icon {
+    width: 36px; height: 36px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+  .icon-retrait { background: rgba(244,67,54,0.1); }
+  .icon-depot { background: rgba(76,175,80,0.1); }
+  .transaction-client { font-size: 14px; font-weight: 600; }
+  .transaction-info { font-size: 11px; color: var(--gris-texte); margin-top: 2px; }
+  .transaction-droite { text-align: right; }
+  .transaction-montant { font-size: 15px; font-weight: 700; }
+  .montant-retrait { color: var(--rouge); }
+  .montant-depot { color: var(--vert); }
+  .transaction-heure { font-size: 11px; color: var(--gris-texte); margin-top: 2px; }
+
+  /* VIDE / CHARGEMENT */
+  .etat-vide {
+    text-align: center; padding: 40px 20px;
+    color: var(--gris-texte); font-size: 13px;
+  }
+  .etat-vide-icon { font-size: 36px; margin-bottom: 10px; }
+
+  .chargement {
+    text-align: center; padding: 30px;
+    color: var(--gris-texte); font-size: 13px;
+  }
+
+  /* MODALE AJOUT OPÉRATEUR */
+  .modale {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 200; align-items: center; justify-content: center;
+  }
+  .modale.active { display: flex; }
+  .modale-contenu {
+    background: var(--gris-fonce);
+    border: 1px solid #333;
+    border-radius: 14px;
+    padding: 24px;
+    width: 300px;
+  }
+  .modale-titre { font-size: 16px; font-weight: 700; margin-bottom: 16px; }
+  .modale-input {
+    width: 100%; background: #111; border: 1px solid #333;
+    border-radius: 8px; padding: 10px 12px;
+    color: var(--blanc); font-size: 14px; font-family: 'Inter', sans-serif;
+    margin-bottom: 12px;
+  }
+  .modale-btns { display: flex; gap: 8px; }
+  .btn-confirmer {
+    flex: 1; background: var(--orange); color: var(--blanc);
+    border: none; border-radius: 8px; padding: 10px;
+    font-size: 13px; font-weight: 700; cursor: pointer;
+    font-family: 'Inter', sans-serif;
+  }
+  .btn-annuler {
+    flex: 1; background: #222; color: var(--gris-texte);
+    border: 1px solid #333; border-radius: 8px; padding: 10px;
+    font-size: 13px; cursor: pointer; font-family: 'Inter', sans-serif;
+  }
+
+  @media (max-width: 400px) {
+    .filtres-grid { grid-template-columns: 1fr; }
+    .stats-grid { grid-template-columns: 1fr 1fr; }
+  }
 </style>
 </head>
 <body>
 
-<header>
-    <img src="logo.png" alt="MomoWatch" style="height:80px; margin-bottom:8px;">
-    <p style="margin:0; font-size:13px; opacity:0.9;">Gardez un œil sur votre boutique, où que vous soyez.</p>
-</header>
+<nav>
+  <div class="nav-logo">
+    <img src="logo.png" alt="MomoWatch" onerror="this.style.display='none'">
+    <div class="nav-logo-text">Momo<span>Watch</span></div>
+  </div>
+  <div class="nav-statut">
+    <div class="point-vert"></div>
+    Actif
+  </div>
+</nav>
 
 <div class="conteneur">
 
-    <div class="filtres">
+  <!-- STATS -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-label">Total aujourd'hui</div>
+      <div class="stat-val" id="totalJour">—</div>
+      <div class="stat-sous" id="nbJour">0 transaction(s)</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Total filtré</div>
+      <div class="stat-val" id="totalFiltre">—</div>
+      <div class="stat-sous" id="nbFiltre">0 transaction(s)</div>
+    </div>
+  </div>
+
+  <!-- FILTRES -->
+  <div class="filtres">
+    <div class="filtres-titre">🔍 Filtres</div>
+    <div class="filtres-grid">
+      <div class="champ">
         <label>Opérateur</label>
-        <select id="operateur">
+        <div class="champ-operateur">
+          <select id="operateur">
             <option value="">Tous</option>
-        </select>
-        <div style="display:flex;gap:8px;margin-top:6px">
-            <input type="text" id="nouvelOperateur" placeholder="Ajouter un opérateur..." 
-                   style="flex:1;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:13px">
-            <button onclick="ajouterOperateur()" 
-                    style="background:#FF7900;color:white;border:none;border-radius:6px;padding:8px 14px;font-size:13px;cursor:pointer">+</button>
+          </select>
+          <button class="btn-ajouter" onclick="ouvrirModale()">+</button>
         </div>
-
-        <label style="margin-top:12px">Type d'opération</label>
+      </div>
+      <div class="champ">
+        <label>Type</label>
         <select id="type">
-            <option value="">Tous</option>
-            <option value="Retrait">Retrait</option>
-            <option value="Dépôt">Dépôt</option>
+          <option value="">Tous</option>
+          <option value="Retrait">Retrait</option>
+          <option value="Dépôt">Dépôt</option>
         </select>
-
-        <label>Nom du client</label>
+      </div>
+      <div class="champ">
+        <label>Client</label>
         <input type="text" id="client" placeholder="Ex: Moussa">
-
+      </div>
+      <div class="champ">
         <label>Date</label>
         <input type="date" id="date">
-
-        <button onclick="chargerBilan()">Voir le bilan</button>
+      </div>
     </div>
+    <button class="btn-filtrer" onclick="chargerTransactions()">Voir les transactions</button>
+  </div>
 
-    <div class="resultat">
-        <div class="montant" id="montantTotal">0 FCFA</div>
-        <div class="nombre" id="nombreTransactions">0 transaction(s)</div>
-    </div>
-
-    <div class="liste" id="listeTransactions"></div>
+  <!-- LISTE -->
+  <div class="section-titre">
+    <span>Transactions</span>
+    <span class="badge-nombre" id="badgeNombre">0</span>
+  </div>
+  <div class="liste" id="liste">
+    <div class="chargement">Chargement...</div>
+  </div>
 
 </div>
 
+<!-- MODALE AJOUT OPÉRATEUR -->
+<div class="modale" id="modale">
+  <div class="modale-contenu">
+    <div class="modale-titre">Ajouter un opérateur</div>
+    <input class="modale-input" type="text" id="inputOperateur" placeholder="Ex: Orange Money">
+    <div class="modale-btns">
+      <button class="btn-annuler" onclick="fermerModale()">Annuler</button>
+      <button class="btn-confirmer" onclick="ajouterOperateur()">Ajouter</button>
+    </div>
+  </div>
+</div>
+
 <script>
-    // Remplace par l'URL de ton projet Vercel une fois déployé
-    const URL_API = "https://TON-PROJET.vercel.app/api/summary";
+  const URL_API = "/api/summary";
 
-    async function chargerBilan() {
-        const operateur = document.getElementById("operateur").value;
-        const type = document.getElementById("type").value;
-        const date = document.getElementById("date").value;
-        const client = document.getElementById("client").value;
+  // Opérateurs sauvegardés
+  function chargerOperateurs() {
+    const ops = JSON.parse(localStorage.getItem("operateurs") || "[]");
+    const select = document.getElementById("operateur");
+    select.innerHTML = '<option value="">Tous</option>';
+    ops.forEach(op => {
+      const o = document.createElement("option");
+      o.value = op; o.textContent = op;
+      select.appendChild(o);
+    });
+  }
 
-        const params = new URLSearchParams();
-        if (operateur) params.append("operateur", operateur);
-        if (type) params.append("type", type);
-        if (date) params.append("date", date);
-        if (client) params.append("client", client);
+  function ouvrirModale() {
+    document.getElementById("modale").classList.add("active");
+    document.getElementById("inputOperateur").focus();
+  }
 
-        try {
-            const reponse = await fetch(`${URL_API}?${params.toString()}`);
-            const data = await reponse.json();
+  function fermerModale() {
+    document.getElementById("modale").classList.remove("active");
+    document.getElementById("inputOperateur").value = "";
+  }
 
-            document.getElementById("montantTotal").textContent =
-                data.total_montant.toLocaleString("fr-FR") + " FCFA";
-            document.getElementById("nombreTransactions").textContent =
-                data.nombre_transactions + " transaction(s)";
-
-            const liste = document.getElementById("listeTransactions");
-            liste.innerHTML = "";
-            data.transactions.forEach(t => {
-                const ligne = document.createElement("div");
-                ligne.className = "ligne";
-                ligne.innerHTML = `<span>${t.client} — ${t.type}</span><span>${Number(t.montant).toLocaleString("fr-FR")} FCFA</span>`;
-                liste.appendChild(ligne);
-            });
-
-        } catch (erreur) {
-            alert("Erreur de chargement. Vérifie que l'URL_API est bien configurée.");
-            console.error(erreur);
-        }
+  function ajouterOperateur() {
+    const nom = document.getElementById("inputOperateur").value.trim();
+    if (!nom) return;
+    const ops = JSON.parse(localStorage.getItem("operateurs") || "[]");
+    if (!ops.includes(nom)) {
+      ops.push(nom);
+      localStorage.setItem("operateurs", JSON.stringify(ops));
+      chargerOperateurs();
     }
+    fermerModale();
+  }
 
-    // Gestion des opérateurs dynamiques (sauvegardés dans localStorage)
-    function chargerOperateurs() {
-        const operateurs = JSON.parse(localStorage.getItem("operateurs") || "[]");
-        const select = document.getElementById("operateur");
-        select.innerHTML = '<option value="">Tous</option>';
-        operateurs.forEach(op => {
-            const option = document.createElement("option");
-            option.value = op;
-            option.textContent = op;
-            select.appendChild(option);
-        });
+  function formaterMontant(montant) {
+    return Number(montant).toLocaleString("fr-FR") + " FCFA";
+  }
+
+  function formaterDate(dateStr) {
+    if (!dateStr) return "";
+    const d = new Date(dateStr);
+    return d.toLocaleDateString("fr-FR") + " " + d.toLocaleTimeString("fr-FR", {hour:"2-digit", minute:"2-digit"});
+  }
+
+  async function chargerTransactions() {
+    const operateur = document.getElementById("operateur").value;
+    const type = document.getElementById("type").value;
+    const date = document.getElementById("date").value;
+    const client = document.getElementById("client").value;
+
+    const params = new URLSearchParams();
+    if (operateur) params.append("operateur", operateur);
+    if (type) params.append("type", type);
+    if (date) params.append("date", date);
+    if (client) params.append("client", client);
+
+    document.getElementById("liste").innerHTML = '<div class="chargement">Chargement...</div>';
+
+    try {
+      const r = await fetch(`${URL_API}?${params.toString()}`);
+      const data = await r.json();
+
+      document.getElementById("totalFiltre").textContent = formaterMontant(data.total_montant || 0);
+      document.getElementById("nbFiltre").textContent = `${data.nombre_transactions || 0} transaction(s)`;
+      document.getElementById("badgeNombre").textContent = data.nombre_transactions || 0;
+
+      const liste = document.getElementById("liste");
+      const transactions = data.transactions || [];
+
+      if (transactions.length === 0) {
+        liste.innerHTML = `
+          <div class="etat-vide">
+            <div class="etat-vide-icon">📭</div>
+            Aucune transaction trouvée
+          </div>`;
+        return;
+      }
+
+      liste.innerHTML = "";
+      transactions.forEach(t => {
+        const retrait = t.type === "Retrait";
+        const div = document.createElement("div");
+        div.className = "transaction";
+        div.innerHTML = `
+          <div class="transaction-gauche">
+            <div class="transaction-icon ${retrait ? "icon-retrait" : "icon-depot"}">
+              ${retrait ? "📤" : "📥"}
+            </div>
+            <div>
+              <div class="transaction-client">${t.client || "Inconnu"}</div>
+              <div class="transaction-info">${t.operateur || ""} · ${t.type || ""}</div>
+            </div>
+          </div>
+          <div class="transaction-droite">
+            <div class="transaction-montant ${retrait ? "montant-retrait" : "montant-depot"}">
+              ${retrait ? "-" : "+"}${formaterMontant(t.montant)}
+            </div>
+            <div class="transaction-heure">${formaterDate(t.date_heure)}</div>
+          </div>`;
+        liste.appendChild(div);
+      });
+
+    } catch (e) {
+      document.getElementById("liste").innerHTML = `
+        <div class="etat-vide">
+          <div class="etat-vide-icon">⚠️</div>
+          Erreur de connexion — vérifie les clés Supabase
+        </div>`;
     }
+  }
 
-    function ajouterOperateur() {
-        const input = document.getElementById("nouvelOperateur");
-        const nom = input.value.trim();
-        if (!nom) return;
-        const operateurs = JSON.parse(localStorage.getItem("operateurs") || "[]");
-        if (!operateurs.includes(nom)) {
-            operateurs.push(nom);
-            localStorage.setItem("operateurs", JSON.stringify(operateurs));
-            chargerOperateurs();
-        }
-        input.value = "";
-    }
+  async function chargerStatsJour() {
+    const auj = new Date().toISOString().split("T")[0];
+    try {
+      const r = await fetch(`${URL_API}?date=${auj}`);
+      const data = await r.json();
+      document.getElementById("totalJour").textContent = formaterMontant(data.total_montant || 0);
+      document.getElementById("nbJour").textContent = `${data.nombre_transactions || 0} transaction(s)`;
+    } catch(e) {}
+  }
 
-    // Initialisation
-    chargerOperateurs();
-    chargerBilan();
+  // Init
+  chargerOperateurs();
+  chargerStatsJour();
+  chargerTransactions();
 </script>
 
 </body>
