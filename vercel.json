@@ -1,15 +1,14 @@
 {
   "version": 2,
   "builds": [
-    {
-      "src": "api/*.py",
-      "use": "@vercel/python"
-    }
+    { "src": "api/*.py", "use": "@vercel/python" },
+    { "src": "*.html", "use": "@vercel/static" },
+    { "src": "*.png", "use": "@vercel/static" }
   ],
   "routes": [
     { "src": "/api/transaction", "dest": "/api/transaction.py" },
     { "src": "/api/summary", "dest": "/api/summary.py" },
-    { "src": "/dashboard.html", "dest": "/dashboard.html" },
-    { "src": "/", "dest": "/index.html" }
+    { "src": "/", "dest": "/index.html" },
+    { "src": "/(.*)", "dest": "/$1" }
   ]
 }
