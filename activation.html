@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MomoWatch — Activation</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --orange: #FF7900;
+    --noir: #0E0E0E;
+    --gf: #1A1A1A;
+    --gm: #2A2A2A;
+    --gt: #9A9A9A;
+    --blanc: #FFFFFF;
+    --vert: #4CAF50;
+    --rouge: #F44336;
+  }
+  body {
+    font-family: 'Inter', sans-serif; background: var(--noir); color: var(--blanc);
+    min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    padding: 20px;
+  }
+  .carte {
+    background: var(--gf); border: 1px solid #222; border-radius: 16px;
+    max-width: 420px; width: 100%; padding: 32px 28px;
+  }
+  .logo-zone { text-align: center; margin-bottom: 24px; }
+  .logo-zone img { height: 60px; }
+  h1 { font-size: 20px; font-weight: 800; text-align: center; margin-bottom: 6px; }
+  .sous-titre { color: var(--gt); font-size: 14px; text-align: center; margin-bottom: 28px; }
+  label { font-size: 13px; color: var(--gt); display: block; margin-bottom: 6px; margin-top: 16px; }
+  input {
+    width: 100%; background: var(--gm); border: 1px solid #333; border-radius: 10px;
+    padding: 12px 14px; color: var(--blanc); font-size: 15px; font-family: inherit;
+  }
+  input:focus { outline: none; border-color: var(--orange); }
+  input#code { text-transform: uppercase; letter-spacing: 1px; }
+  button {
+    width: 100%; margin-top: 26px; background: var(--orange); color: var(--blanc);
+    border: none; border-radius: 10px; padding: 14px; font-size: 15px; font-weight: 700;
+    cursor: pointer; font-family: inherit;
+  }
+  button:disabled { opacity: 0.6; cursor: not-allowed; }
+  .msg { margin-top: 16px; font-size: 14px; text-align: center; display: none; }
+  .msg.erreur { color: var(--rouge); display: block; }
+  .msg.succes { color: var(--vert); display: block; }
+</style>
+</head>
+<body>
+
+<div class="carte">
+  <div class="logo-zone">
+    <img src="logo.png" alt="MomoWatch">
+  </div>
+  <h1>Activer ta boutique</h1>
+  <div class="sous-titre">Entre ton code d'abonnement et les infos de ta boutique</div>
+
+  <form id="form-activation">
+    <label>Code d'activation</label>
+    <input type="text" id="code" placeholder="MOMO-1M-XXXX" required>
+
+    <label>Nom de la boutique</label>
+    <input type="text" id="nom_boutique" placeholder="Ex : Boutique Alpha" required>
+
+    <label>Nom du DG / gérant</label>
+    <input type="text" id="nom_dg" placeholder="Ex : Konan Yao" required>
+
+    <label>Téléphone</label>
+    <input type="tel" id="telephone" placeholder="Ex : 0700000000">
+
+    <label>Ville</label>
+    <input type="text" id="ville" placeholder="Ex : Abidjan">
+
+    <button type="submit" id="btn-activer">Activer</button>
+    <div class="msg" id="msg"></div>
+  </form>
+</div>
+
+<script>
+  const form = document.getElementById("form-activation");
+  const btn  = document.getElementById("btn-activer");
+  const msg  = document.getElementById("msg");
+
+  // Si déjà activé sur cet appareil, direction le tableau de bord
+  if (localStorage.getItem("boutique_id")) {
+    window.location.href = "dashboard.html";
+  }
+
+  form.addEventListener("submit", async function(e) {
+    e.preventDefault();
+    msg.className = "msg";
+    msg.textContent = "";
+    btn.disabled = true;
+    btn.textContent = "Activation...";
+
+    const payload = {
+      code:         document.getElementById("code").value.trim(),
+      nom_boutique: document.getElementById("nom_boutique").value.trim(),
+      nom_dg:       document.getElementById("nom_dg").value.trim(),
+      telephone:    document.getElementById("telephone").value.trim(),
+      ville:        document.getElementById("ville").value.trim()
+    };
+
+    try {
+      const r = await fetch("/api/activer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const d = await r.json();
+
+      if (d.succes) {
+        localStorage.setItem("boutique_id", d.boutique_id);
+        localStorage.setItem("nom_boutique", d.nom_boutique);
+        msg.className = "msg succes";
+        msg.textContent = "Boutique activée ! Redirection...";
+        setTimeout(() => window.location.href = "dashboard.html", 900);
+      } else {
+        msg.className = "msg erreur";
+        msg.textContent = d.message || "Code invalide";
+        btn.disabled = false;
+        btn.textContent = "Activer";
+      }
+    } catch (err) {
+      msg.className = "msg erreur";
+      msg.textContent = "Erreur de connexion — réessaie";
+      btn.disabled = false;
+      btn.textContent = "Activer";
+    }
+  });
+</script>
+
+</body>
+</html>

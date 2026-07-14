@@ -8,6 +8,8 @@
   "routes": [
     { "src": "/api/transaction", "dest": "/api/transaction.py" },
     { "src": "/api/summary", "dest": "/api/summary.py" },
+    { "src": "/api/activer", "dest": "/api/activer.py" },
+    { "src": "/api/verifier", "dest": "/api/verifier.py" },
     { "src": "/", "dest": "/index.html" },
     { "src": "/(.*)", "dest": "/$1" }
   ]

@@ -77,6 +77,18 @@
     padding: 2px 10px; border-radius: 100px;
   }
   .liste { display: flex; flex-direction: column; gap: 8px; }
+
+  /* CLOCHE DE NOTIFICATIONS */
+  .cloche { position: relative; font-size: 18px; cursor: pointer; }
+  .cloche-badge {
+    position: absolute; top: -6px; right: -8px;
+    background: var(--orange); color: var(--blanc);
+    font-size: 10px; font-weight: 700; line-height: 1;
+    padding: 3px 5px; border-radius: 100px; min-width: 14px; text-align: center;
+    display: none;
+  }
+  .cloche-badge.show { display: block; }
+
   .tx {
     background: var(--gf); border: 1px solid #222; border-radius: 10px;
     padding: 12px 14px; display: flex; justify-content: space-between; align-items: center;
@@ -141,6 +153,7 @@
   </div>
   <div style="display:flex;align-items:center;gap:12px;">
     <a href="index.html" style="color:var(--gt);font-size:12px;text-decoration:none;display:flex;align-items:center;gap:5px;">← Accueil</a>
+    <div class="cloche" id="cloche" onclick="ouvrirCloche()">🔔<div class="cloche-badge" id="cloche-badge">0</div></div>
     <div class="statut"><div class="dot"></div>Actif</div>
   </div>
 </nav>
@@ -214,6 +227,12 @@
 </div>
 
 <script>
+  // Vérifie que la boutique est activée sur cet appareil, sinon renvoie vers l'activation
+  const BOUTIQUE_ID = localStorage.getItem("boutique_id");
+  if (!BOUTIQUE_ID) {
+    window.location.href = "activation.html";
+  }
+
   function fmt(n) { return Number(n||0).toLocaleString("fr-FR") + " FCFA"; }
   function fmtDate(s) {
     if (!s) return "";
@@ -259,6 +278,7 @@
     const client    = filtre ? document.getElementById("client").value : "";
 
     const p = new URLSearchParams();
+    p.append("boutique_id", BOUTIQUE_ID);
     if (operateur) p.append("operateur", operateur);
     if (type)      p.append("type", type);
     if (date_debut) p.append("date_debut", date_debut);
@@ -309,13 +329,39 @@
   async function chargerJour() {
     const auj = new Date().toISOString().split("T")[0];
     try {
-      const r = await fetch(`/api/summary?date=${auj}`);
+      const r = await fetch(`/api/summary?boutique_id=${BOUTIQUE_ID}&date=${auj}`);
       const d = await r.json();
       document.getElementById("v-jour").textContent = fmt(d.total_montant);
       document.getElementById("n-jour").textContent = `${d.nombre_transactions||0} transaction(s)`;
     } catch(e) {
       document.getElementById("v-jour").textContent = "—";
     }
+  }
+
+  async function chargerCloche() {
+    const dernierVu = localStorage.getItem("dernier_vu");
+    if (!dernierVu) {
+      // Première ouverture sur cet appareil : rien à signaler, on démarre le compteur à partir de maintenant
+      localStorage.setItem("dernier_vu", new Date().toISOString());
+      return;
+    }
+    try {
+      const r = await fetch(`/api/summary?boutique_id=${BOUTIQUE_ID}&depuis=${encodeURIComponent(dernierVu)}`);
+      const d = await r.json();
+      const n = d.nombre_transactions || 0;
+      const badge = document.getElementById("cloche-badge");
+      badge.textContent = n;
+      badge.classList.toggle("show", n > 0);
+    } catch(e) { /* silencieux : la cloche n'est pas critique */ }
+  }
+
+  function ouvrirCloche() {
+    // Le DG a vu les nouvelles transactions : on remet le compteur à zéro à partir de maintenant
+    localStorage.setItem("dernier_vu", new Date().toISOString());
+    const badge = document.getElementById("cloche-badge");
+    badge.textContent = 0;
+    badge.classList.remove("show");
+    charger();
   }
 
   // Fermer modale en cliquant dehors
@@ -326,6 +372,7 @@
   // Init
   chargerOps();
   chargerJour();
+  chargerCloche();
   charger();
 </script>
 </body>
