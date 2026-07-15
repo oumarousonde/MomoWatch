@@ -3,6 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" href="/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#FF7900">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="MomoWatch">
 <title>MomoWatch — Admin</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
@@ -155,6 +162,19 @@
       return;
     }
 
+    // Repère les noms de boutique en double (affichage uniquement, ne touche pas aux données)
+    // et attribue un suffixe (2), (3)... par boutique_id, dans l'ordre chronologique d'activation.
+    const parOrdreAsc = [...codes].reverse(); // codes arrive du plus récent au plus ancien
+    const compteurParNom = {};
+    const suffixeParBoutiqueId = {};
+    parOrdreAsc.forEach(c => {
+      const nom = (c.boutiques || {}).nom_boutique;
+      const id = c.boutique_id;
+      if (!nom || !id || suffixeParBoutiqueId[id]) return;
+      compteurParNom[nom] = (compteurParNom[nom] || 0) + 1;
+      suffixeParBoutiqueId[id] = compteurParNom[nom];
+    });
+
     corps.innerHTML = codes.map(c => {
       let statutTag = "disponible";
       let statutTexte = "Disponible";
@@ -167,11 +187,15 @@
         }
       }
       const boutique = c.boutiques || {};
+      const rang = suffixeParBoutiqueId[c.boutique_id] || 1;
+      const nomAffiche = boutique.nom_boutique
+        ? boutique.nom_boutique + (rang > 1 ? ` (${rang})` : "")
+        : "—";
       return `<tr>
         <td style="font-family:monospace;color:var(--orange);">${c.code}</td>
         <td>${dureeLabel(c.duree_jours)}</td>
         <td><span class="tag ${statutTag}">${statutTexte}</span></td>
-        <td>${boutique.nom_boutique || "—"}</td>
+        <td>${nomAffiche}</td>
         <td>${boutique.nom_dg || "—"}</td>
         <td>${boutique.telephone || "—"}</td>
         <td>${fmtDate(c.date_expiration)}</td>
