@@ -10,6 +10,8 @@
     { "src": "/api/summary", "dest": "/api/summary.py" },
     { "src": "/api/activer", "dest": "/api/activer.py" },
     { "src": "/api/verifier", "dest": "/api/verifier.py" },
+    { "src": "/api/admin_generer_code", "dest": "/api/admin_generer_code.py" },
+    { "src": "/api/admin_liste", "dest": "/api/admin_liste.py" },
     { "src": "/", "dest": "/index.html" },
     { "src": "/(.*)", "dest": "/$1" }
   ]

@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MomoWatch — Admin</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --orange: #FF7900; --noir: #0E0E0E; --gf: #1A1A1A; --gm: #2A2A2A;
+    --gt: #9A9A9A; --blanc: #FFFFFF; --vert: #4CAF50; --rouge: #F44336;
+  }
+  body { font-family: 'Inter', sans-serif; background: var(--noir); color: var(--blanc); min-height: 100vh; padding: 20px; }
+
+  /* ÉCRAN CONNEXION */
+  #ecran-connexion {
+    min-height: 90vh; display: flex; align-items: center; justify-content: center;
+  }
+  .carte-connexion {
+    background: var(--gf); border: 1px solid #222; border-radius: 16px;
+    max-width: 360px; width: 100%; padding: 32px 28px; text-align: center;
+  }
+  .carte-connexion h1 { font-size: 18px; font-weight: 800; margin-bottom: 20px; }
+  .carte-connexion input {
+    width: 100%; background: var(--gm); border: 1px solid #333; border-radius: 10px;
+    padding: 12px 14px; color: var(--blanc); font-size: 15px; font-family: inherit; margin-bottom: 14px;
+  }
+  .carte-connexion input:focus { outline: none; border-color: var(--orange); }
+
+  /* ÉCRAN ADMIN */
+  #ecran-admin { display: none; max-width: 900px; margin: 0 auto; }
+  h1.titre { font-size: 20px; font-weight: 800; margin-bottom: 24px; }
+  h1.titre span { color: var(--orange); }
+
+  .bloc { background: var(--gf); border: 1px solid #222; border-radius: 14px; padding: 20px; margin-bottom: 20px; }
+  .bloc h2 { font-size: 15px; margin-bottom: 14px; }
+
+  select, button {
+    background: var(--gm); border: 1px solid #333; border-radius: 10px;
+    padding: 10px 14px; color: var(--blanc); font-size: 14px; font-family: inherit;
+  }
+  button.principal { background: var(--orange); border: none; font-weight: 700; cursor: pointer; }
+  button.principal:disabled { opacity: 0.6; }
+
+  .resultat-code {
+    margin-top: 14px; padding: 12px 14px; background: var(--gm); border-radius: 10px;
+    font-family: monospace; font-size: 16px; color: var(--orange); font-weight: 700;
+    display: none;
+  }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { padding: 10px 8px; text-align: left; border-bottom: 1px solid #222; white-space: nowrap; }
+  th { color: var(--gt); font-weight: 600; }
+  .tag { padding: 3px 8px; border-radius: 100px; font-size: 11px; font-weight: 700; }
+  .tag.disponible { background: #2A2A2A; color: var(--gt); }
+  .tag.actif { background: rgba(76,175,80,0.15); color: var(--vert); }
+  .tag.expire { background: rgba(244,67,54,0.15); color: var(--rouge); }
+
+  .table-scroll { overflow-x: auto; }
+  .msg { margin-top: 10px; font-size: 13px; }
+  .msg.erreur { color: var(--rouge); }
+</style>
+</head>
+<body>
+
+<div id="ecran-connexion">
+  <div class="carte-connexion">
+    <h1>🔒 Accès admin MomoWatch</h1>
+    <input type="password" id="champ-mdp" placeholder="Mot de passe">
+    <button class="principal" style="width:100%;padding:12px;" onclick="connexion()">Entrer</button>
+    <div class="msg erreur" id="msg-connexion"></div>
+  </div>
+</div>
+
+<div id="ecran-admin">
+  <h1 class="titre">Momo<span>Watch</span> — Admin</h1>
+
+  <div class="bloc">
+    <h2>Générer un nouveau code d'activation</h2>
+    <select id="duree-select">
+      <option value="30">1 mois</option>
+      <option value="90">3 mois</option>
+      <option value="365">12 mois</option>
+    </select>
+    <button class="principal" id="btn-generer" onclick="genererCode()">Générer</button>
+    <div class="resultat-code" id="resultat-code"></div>
+  </div>
+
+  <div class="bloc">
+    <h2>Tous les codes</h2>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Code</th><th>Durée</th><th>Statut</th><th>Boutique</th><th>DG</th><th>Téléphone</th><th>Expire le</th>
+          </tr>
+        </thead>
+        <tbody id="corps-table">
+          <tr><td colspan="7">Chargement...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+  let MOT_DE_PASSE = sessionStorage.getItem("admin_mdp") || "";
+
+  if (MOT_DE_PASSE) {
+    verifierEtEntrer();
+  }
+
+  async function connexion() {
+    const mdp = document.getElementById("champ-mdp").value.trim();
+    if (!mdp) return;
+    MOT_DE_PASSE = mdp;
+    await verifierEtEntrer();
+  }
+
+  async function verifierEtEntrer() {
+    try {
+      const r = await fetch(`/api/admin_liste?mot_de_passe=${encodeURIComponent(MOT_DE_PASSE)}`);
+      const d = await r.json();
+      if (!d.succes) {
+        document.getElementById("msg-connexion").textContent = d.message || "Mot de passe incorrect";
+        sessionStorage.removeItem("admin_mdp");
+        return;
+      }
+      sessionStorage.setItem("admin_mdp", MOT_DE_PASSE);
+      document.getElementById("ecran-connexion").style.display = "none";
+      document.getElementById("ecran-admin").style.display = "block";
+      afficherCodes(d.codes);
+    } catch (e) {
+      document.getElementById("msg-connexion").textContent = "Erreur de connexion";
+    }
+  }
+
+  function fmtDate(d) {
+    if (!d) return "—";
+    return new Date(d).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric" });
+  }
+
+  function dureeLabel(j) {
+    if (j === 30) return "1 mois";
+    if (j === 90) return "3 mois";
+    if (j === 365) return "12 mois";
+    return j + " jours";
+  }
+
+  function afficherCodes(codes) {
+    const corps = document.getElementById("corps-table");
+    if (!codes || codes.length === 0) {
+      corps.innerHTML = "<tr><td colspan='7'>Aucun code pour l'instant</td></tr>";
+      return;
+    }
+
+    corps.innerHTML = codes.map(c => {
+      let statutTag = "disponible";
+      let statutTexte = "Disponible";
+      if (c.statut === "actif") {
+        const expire = c.date_expiration ? new Date(c.date_expiration) : null;
+        if (expire && expire < new Date()) {
+          statutTag = "expire"; statutTexte = "Expiré";
+        } else {
+          statutTag = "actif"; statutTexte = "Actif";
+        }
+      }
+      const boutique = c.boutiques || {};
+      return `<tr>
+        <td style="font-family:monospace;color:var(--orange);">${c.code}</td>
+        <td>${dureeLabel(c.duree_jours)}</td>
+        <td><span class="tag ${statutTag}">${statutTexte}</span></td>
+        <td>${boutique.nom_boutique || "—"}</td>
+        <td>${boutique.nom_dg || "—"}</td>
+        <td>${boutique.telephone || "—"}</td>
+        <td>${fmtDate(c.date_expiration)}</td>
+      </tr>`;
+    }).join("");
+  }
+
+  async function genererCode() {
+    const btn = document.getElementById("btn-generer");
+    const duree = parseInt(document.getElementById("duree-select").value);
+    btn.disabled = true;
+    btn.textContent = "Génération...";
+
+    try {
+      const r = await fetch("/api/admin_generer_code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mot_de_passe: MOT_DE_PASSE, duree_jours: duree })
+      });
+      const d = await r.json();
+      if (d.succes) {
+        const zone = document.getElementById("resultat-code");
+        zone.style.display = "block";
+        zone.textContent = "✅ " + d.code;
+        rafraichirListe();
+      } else {
+        alert(d.message || "Erreur");
+      }
+    } catch (e) {
+      alert("Erreur de connexion");
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Générer";
+    }
+  }
+
+  async function rafraichirListe() {
+    const r = await fetch(`/api/admin_liste?mot_de_passe=${encodeURIComponent(MOT_DE_PASSE)}`);
+    const d = await r.json();
+    if (d.succes) afficherCodes(d.codes);
+  }
+</script>
+
+</body>
+</html>
