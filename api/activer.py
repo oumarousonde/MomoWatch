@@ -27,7 +27,28 @@ class handler(BaseHTTPRequestHandler):
 
             supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-            # 1. Créer la boutique
+            # Vérifie d'abord si ce code existe déjà et est actif (reconnexion à une boutique existante,
+            # par ex. depuis le dashboard web alors que l'APK l'a déjà activé)
+            abonnement_existant = supabase.table("abonnements").select("*").eq("code", code).execute().data
+
+            if abonnement_existant:
+                a = abonnement_existant[0]
+                if a["statut"] == "actif" and a.get("boutique_id"):
+                    boutique_existante = supabase.table("boutiques").select("*").eq("id", a["boutique_id"]).execute().data
+                    if boutique_existante:
+                        self._rep(200, {
+                            "succes": True,
+                            "message": "Connecté à la boutique existante",
+                            "boutique_id": a["boutique_id"],
+                            "nom_boutique": boutique_existante[0]["nom_boutique"],
+                            "expire_le": a.get("date_expiration")
+                        })
+                        return
+                elif a["statut"] != "disponible":
+                    self._rep(400, {"succes": False, "message": "Ce code n'est plus disponible"})
+                    return
+
+            # 1. Créer la boutique (première activation de ce code)
             boutique = supabase.table("boutiques").insert({
                 "nom_boutique": nom_boutique,
                 "nom_dg": nom_dg,
