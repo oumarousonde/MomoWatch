@@ -381,8 +381,24 @@
       <div id="resultatAdmin" style="margin-top:14px;text-align:center;display:none;">
         <div style="color:#9A9A9A;font-size:13px;margin-bottom:6px;">Nouveau code :</div>
         <div id="codeAffiche" style="color:#FF7900;font-family:monospace;font-size:20px;
-             font-weight:700;letter-spacing:1px;"></div>
+             font-weight:700;letter-spacing:1px;margin-bottom:14px;"></div>
+        <div style="display:flex;gap:8px;margin-bottom:10px;">
+          <input id="indicatifWhatsapp" type="text" value="226" placeholder="Indicatif"
+                 style="width:70px;padding:10px 8px;border-radius:8px;border:1px solid #2A2A2A;
+                        background:#0E0E0E;color:#fff;text-align:center;">
+          <input id="telWhatsapp" type="tel" placeholder="Numéro du client (ex: 70123456)"
+                 style="flex:1;padding:10px 12px;border-radius:8px;border:1px solid #2A2A2A;
+                        background:#0E0E0E;color:#fff;text-align:left;">
+        </div>
+        <div style="color:#6A6A6A;font-size:11px;margin-bottom:10px;text-align:left;">
+          Client hors Burkina ? Change l'indicatif (ex: 225 Côte d'Ivoire, 221 Sénégal, 223 Mali)
+        </div>
+        <button id="btnEnvoyerWhatsapp"
+                style="width:100%;padding:10px;border:none;border-radius:8px;background:#25D366;
+                       color:#fff;font-weight:700;cursor:pointer;">Envoyer par WhatsApp</button>
       </div>
+      <a href="/admin.html" style="display:block;text-align:center;margin-top:16px;
+         color:#9A9A9A;font-size:13px;text-decoration:underline;">Voir toutes les boutiques →</a>
     </div>
   </div>
 </div>
@@ -398,7 +414,7 @@
   const resultatAdmin = document.getElementById('resultatAdmin');
   const codeAffiche = document.getElementById('codeAffiche');
 
-  let motDePasse = sessionStorage.getItem('mw_admin_mdp') || '';
+  let motDePasse = sessionStorage.getItem('admin_mdp') || '';
 
   function ouvrir(){
     overlay.style.display = 'flex';
@@ -420,6 +436,10 @@
   document.getElementById('fermerAdmin').addEventListener('click', fermer);
   overlay.addEventListener('click', (e) => { if (e.target === overlay) fermer(); });
 
+  const LABEL_DUREE = {30: '1 mois', 90: '3 mois', 365: '12 mois'};
+  let dernierCodeGenere = '';
+  let derniereDureeGeneree = 30;
+
   async function generer(){
     const duree = parseInt(document.getElementById('dureeAdmin').value, 10);
     const btn = document.getElementById('btnGenererAdmin');
@@ -432,11 +452,14 @@
       });
       const data = await res.json();
       if (data.succes) {
+        dernierCodeGenere = data.code;
+        derniereDureeGeneree = duree;
         codeAffiche.textContent = data.code;
+        document.getElementById('telWhatsapp').value = '';
         resultatAdmin.style.display = 'block';
       } else {
         motDePasse = '';
-        sessionStorage.removeItem('mw_admin_mdp');
+        sessionStorage.removeItem('admin_mdp');
         etapeGenerer.style.display = 'none';
         etapeMdp.style.display = 'block';
         erreurMdp.textContent = data.message || 'Erreur';
@@ -449,11 +472,21 @@
     btn.disabled = false; btn.textContent = 'Générer';
   }
 
+  document.getElementById('btnEnvoyerWhatsapp').addEventListener('click', () => {
+    if (!dernierCodeGenere) return;
+    const indicatif = document.getElementById('indicatifWhatsapp').value.replace(/[^0-9]/g, '');
+    const numero = document.getElementById('telWhatsapp').value.replace(/[^0-9]/g, '');
+    if (!indicatif || !numero) return;
+    const tel = indicatif + numero;
+    const message = `Bonjour, voici votre code d'activation MomoWatch (${LABEL_DUREE[derniereDureeGeneree] || ''}) : ${dernierCodeGenere}`;
+    window.open(`https://wa.me/${tel}?text=${encodeURIComponent(message)}`, '_blank');
+  });
+
   document.getElementById('btnValiderMdp').addEventListener('click', () => {
     const val = mdpInput.value.trim();
     if (!val) return;
     motDePasse = val;
-    sessionStorage.setItem('mw_admin_mdp', val);
+    sessionStorage.setItem('admin_mdp', val);
     etapeMdp.style.display = 'none';
     etapeGenerer.style.display = 'block';
   });

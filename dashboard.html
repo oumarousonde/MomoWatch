@@ -180,6 +180,18 @@
     </div>
   </div>
 
+  <div style="background:#161616;border:1px solid #2A2A2A;border-radius:12px;padding:14px 16px;
+       margin:14px 0;display:flex;align-items:center;justify-content:space-between;gap:10px;">
+    <div style="overflow:hidden;">
+      <div style="color:#9A9A9A;font-size:12px;margin-bottom:4px;">ID boutique (pour configurer l'appli de lecture SMS)</div>
+      <div id="idBoutiqueAffiche" style="color:#FF7900;font-family:monospace;font-size:13px;
+           white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">—</div>
+    </div>
+    <button id="btnCopierId" style="flex-shrink:0;padding:8px 14px;border:1px solid #FF7900;
+            border-radius:8px;background:transparent;color:#FF7900;font-weight:700;
+            cursor:pointer;font-size:13px;">Copier</button>
+  </div>
+
   <div class="filtres">
     <div class="f-titre">🔍 Filtres</div>
     <div class="f-grid">
@@ -236,6 +248,19 @@
 <script>
   // Vérifie que la boutique est activée sur cet appareil, sinon renvoie vers l'activation
   const BOUTIQUE_ID = localStorage.getItem("boutique_id");
+
+  const idAffEl = document.getElementById("idBoutiqueAffiche");
+  if (idAffEl) idAffEl.textContent = BOUTIQUE_ID || "Non disponible";
+  const btnCopierId = document.getElementById("btnCopierId");
+  if (btnCopierId) {
+    btnCopierId.addEventListener("click", () => {
+      if (!BOUTIQUE_ID) return;
+      navigator.clipboard.writeText(BOUTIQUE_ID).then(() => {
+        btnCopierId.textContent = "Copié ✓";
+        setTimeout(() => { btnCopierId.textContent = "Copier"; }, 1500);
+      });
+    });
+  }
   if (!BOUTIQUE_ID) {
     window.location.href = "activation.html";
   }
@@ -309,8 +334,10 @@
         return;
       }
       liste.innerHTML = "";
+      const opsVus = new Set();
       txs.forEach(t => {
         const ret = t.type === "Retrait";
+        if (t.operateur) opsVus.add(t.operateur);
         const div = document.createElement("div");
         div.className = "tx";
         div.innerHTML = `
@@ -327,6 +354,15 @@
           </div>`;
         liste.appendChild(div);
       });
+      if (opsVus.size > 0) {
+        const ops = JSON.parse(localStorage.getItem("ops") || "[]");
+        let ajoute = false;
+        opsVus.forEach(o => { if (!ops.includes(o)) { ops.push(o); ajoute = true; } });
+        if (ajoute) {
+          localStorage.setItem("ops", JSON.stringify(ops));
+          chargerOps();
+        }
+      }
     } catch(e) {
       document.getElementById("liste").innerHTML =
         `<div class="vide"><div class="vide-ico">⚠️</div>Erreur — vérifie les clés Supabase dans Vercel</div>`;
