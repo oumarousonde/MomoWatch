@@ -92,6 +92,21 @@
     </select>
     <button class="principal" id="btn-generer" onclick="genererCode()">Générer</button>
     <div class="resultat-code" id="resultat-code"></div>
+    <div id="bloc-whatsapp" style="display:none;margin-top:14px;">
+      <div style="display:flex;gap:8px;margin-bottom:8px;">
+        <input id="indicatifWhatsapp" type="text" value="226" placeholder="Indicatif"
+               style="width:70px;padding:10px 8px;border-radius:8px;border:1px solid #2A2A2A;
+                      background:#0E0E0E;color:#fff;text-align:center;">
+        <input id="telWhatsapp" type="tel" placeholder="Numéro du client (ex: 70123456)"
+               style="flex:1;padding:10px 12px;border-radius:8px;border:1px solid #2A2A2A;
+                      background:#0E0E0E;color:#fff;">
+      </div>
+      <div style="color:#6A6A6A;font-size:11px;margin-bottom:8px;">
+        Client hors Burkina ? Change l'indicatif (ex: 225 Côte d'Ivoire, 221 Sénégal, 223 Mali)
+      </div>
+      <button id="btnEnvoyerWhatsapp" style="width:100%;padding:10px;border:none;border-radius:8px;
+              background:#25D366;color:#fff;font-weight:700;cursor:pointer;">Envoyer par WhatsApp</button>
+    </div>
   </div>
 
   <div class="bloc">
@@ -100,11 +115,11 @@
       <table>
         <thead>
           <tr>
-            <th>Code</th><th>Durée</th><th>Statut</th><th>Boutique</th><th>DG</th><th>Téléphone</th><th>Expire le</th>
+            <th>Code</th><th>Durée</th><th>Statut</th><th>Boutique</th><th>DG</th><th>Téléphone</th><th>Expire le</th><th>ID boutique</th>
           </tr>
         </thead>
         <tbody id="corps-table">
-          <tr><td colspan="7">Chargement...</td></tr>
+          <tr><td colspan="8">Chargement...</td></tr>
         </tbody>
       </table>
     </div>
@@ -158,7 +173,7 @@
   function afficherCodes(codes) {
     const corps = document.getElementById("corps-table");
     if (!codes || codes.length === 0) {
-      corps.innerHTML = "<tr><td colspan='7'>Aucun code pour l'instant</td></tr>";
+      corps.innerHTML = "<tr><td colspan='8'>Aucun code pour l'instant</td></tr>";
       return;
     }
 
@@ -199,9 +214,16 @@
         <td>${boutique.nom_dg || "—"}</td>
         <td>${boutique.telephone || "—"}</td>
         <td>${fmtDate(c.date_expiration)}</td>
+        <td style="font-family:monospace;font-size:11px;cursor:pointer;"
+            title="Cliquer pour copier"
+            onclick="navigator.clipboard.writeText('${c.boutique_id || ""}')">${c.boutique_id ? c.boutique_id.slice(0,8) + "…" : "—"}</td>
       </tr>`;
     }).join("");
   }
+
+  const LABEL_DUREE_WA = {30: '1 mois', 90: '3 mois', 365: '12 mois'};
+  let dernierCodeGenere = '';
+  let derniereDureeGeneree = 30;
 
   async function genererCode() {
     const btn = document.getElementById("btn-generer");
@@ -220,6 +242,10 @@
         const zone = document.getElementById("resultat-code");
         zone.style.display = "block";
         zone.textContent = "✅ " + d.code;
+        dernierCodeGenere = d.code;
+        derniereDureeGeneree = duree;
+        document.getElementById("telWhatsapp").value = "";
+        document.getElementById("bloc-whatsapp").style.display = "block";
         rafraichirListe();
       } else {
         alert(d.message || "Erreur");
@@ -231,6 +257,16 @@
       btn.textContent = "Générer";
     }
   }
+
+  document.getElementById("btnEnvoyerWhatsapp").addEventListener("click", () => {
+    if (!dernierCodeGenere) return;
+    const indicatif = document.getElementById("indicatifWhatsapp").value.replace(/[^0-9]/g, "");
+    const numero = document.getElementById("telWhatsapp").value.replace(/[^0-9]/g, "");
+    if (!indicatif || !numero) return;
+    const tel = indicatif + numero;
+    const message = `Bonjour, voici votre code d'activation MomoWatch (${LABEL_DUREE_WA[derniereDureeGeneree] || ""}) : ${dernierCodeGenere}`;
+    window.open(`https://wa.me/${tel}?text=${encodeURIComponent(message)}`, "_blank");
+  });
 
   async function rafraichirListe() {
     const r = await fetch(`/api/admin_liste?mot_de_passe=${encodeURIComponent(MOT_DE_PASSE)}`);
