@@ -17,11 +17,12 @@ class handler(BaseHTTPRequestHandler):
             nom_dg        = (data.get("nom_dg") or "").strip()
             telephone     = (data.get("telephone") or "").strip()
             ville         = (data.get("ville") or "").strip()
+            mot_de_passe  = (data.get("mot_de_passe") or "").strip()
 
-            if not code or not nom_boutique or not nom_dg:
+            if not code or not nom_boutique or not nom_dg or not mot_de_passe:
                 self._rep(400, {
                     "succes": False,
-                    "message": "Le code, le nom de la boutique et le nom du DG sont obligatoires"
+                    "message": "Le code, le nom de la boutique, le nom du DG et le mot de passe sont obligatoires"
                 })
                 return
 
@@ -36,6 +37,12 @@ class handler(BaseHTTPRequestHandler):
                 if a["statut"] == "actif" and a.get("boutique_id"):
                     boutique_existante = supabase.table("boutiques").select("*").eq("id", a["boutique_id"]).execute().data
                     if boutique_existante:
+                        # Même en reconnexion, le mot de passe doit correspondre —
+                        # sinon n'importe qui connaissant un code déjà utilisé
+                        # pourrait accéder à une boutique sans son mot de passe.
+                        if boutique_existante[0].get("mot_de_passe") != mot_de_passe:
+                            self._rep(401, {"succes": False, "message": "Mot de passe incorrect"})
+                            return
                         self._rep(200, {
                             "succes": True,
                             "message": "Connecté à la boutique existante",
@@ -53,7 +60,8 @@ class handler(BaseHTTPRequestHandler):
                 "nom_boutique": nom_boutique,
                 "nom_dg": nom_dg,
                 "telephone": telephone,
-                "ville": ville
+                "ville": ville,
+                "mot_de_passe": mot_de_passe
             }).execute()
 
             boutique_id = boutique.data[0]["id"]
