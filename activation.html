@@ -53,11 +53,14 @@
   .msg { margin-top: 16px; font-size: 14px; text-align: center; display: none; }
   .msg.erreur { color: var(--rouge); display: block; }
   .msg.succes { color: var(--vert); display: block; }
+  .statut-renouvellement { font-size: 14px; text-align: center; margin-bottom: 20px; padding: 12px; border-radius: 10px; }
+  .statut-renouvellement.expire { background: rgba(244,67,54,0.12); color: var(--rouge); }
+  .statut-renouvellement.bientot { background: rgba(255,121,0,0.12); color: var(--orange); }
 </style>
 </head>
 <body>
 
-<div class="carte">
+<div class="carte" id="carteActivation">
   <div class="logo-zone">
     <img src="logo.png" alt="MomoWatch">
   </div>
@@ -80,9 +83,33 @@
     <label>Ville</label>
     <input type="text" id="ville" placeholder="Ex : Abidjan">
 
+    <label>Mot de passe du dashboard</label>
+    <input type="password" id="mot_de_passe" placeholder="Choisis un mot de passe (min. 4 caractères)" required minlength="4">
+
     <button type="submit" id="btn-activer">Activer</button>
     <div class="msg" id="msg"></div>
   </form>
+</div>
+
+<div class="carte" id="carteRenouvellement" style="display:none;">
+  <div class="logo-zone">
+    <img src="logo.png" alt="MomoWatch">
+  </div>
+  <h1>Renouveler ton abonnement</h1>
+  <div class="sous-titre" id="nomBoutiqueRenouv"></div>
+  <div class="statut-renouvellement" id="statutRenouv"></div>
+
+  <form id="form-renouvellement">
+    <label>Nouveau code d'abonnement</label>
+    <input type="text" id="codeRenouv" placeholder="MOMO-1M-XXXX" required>
+    <button type="submit" id="btn-renouveler">Renouveler</button>
+    <div class="msg" id="msgRenouv"></div>
+  </form>
+
+  <button type="button" id="btn-continuer-sans-renouveler"
+          style="background:transparent;color:var(--gt);margin-top:10px;font-weight:400;font-size:13px;">
+    Continuer vers le tableau de bord
+  </button>
 </div>
 
 <script>
@@ -90,10 +117,109 @@
   const btn  = document.getElementById("btn-activer");
   const msg  = document.getElementById("msg");
 
-  // Si déjà activé sur cet appareil, direction le tableau de bord
-  if (localStorage.getItem("boutique_id")) {
-    window.location.href = "dashboard.html";
+  const SEUIL_ALERTE_JOURS = 5;
+
+  async function verifierStatutEtRediriger() {
+    const boutiqueId = localStorage.getItem("boutique_id");
+    if (!boutiqueId) return; // pas encore activé, on affiche le formulaire normal
+
+    try {
+      const r = await fetch("/api/verifier?boutique_id=" + encodeURIComponent(boutiqueId));
+      const d = await r.json();
+
+      if (d.actif) {
+        const joursRestants = calculerJoursRestants(d.expire_le);
+        if (joursRestants === null || joursRestants > SEUIL_ALERTE_JOURS) {
+          window.location.href = "dashboard.html";
+          return;
+        }
+        // Abonnement actif mais bientôt expiré : on propose le renouvellement
+        // sans bloquer l'accès au dashboard.
+        afficherRenouvellement("bientot",
+          joursRestants <= 0 ? "Ton abonnement expire aujourd'hui." :
+          `Ton abonnement expire dans ${joursRestants} ${joursRestants === 1 ? "jour" : "jours"}.`);
+      } else {
+        // Abonnement expiré : on bloque l'accès direct au dashboard tant qu'il
+        // n'est pas renouvelé (le serveur bloquerait de toute façon les nouvelles
+        // transactions, mais on évite au boutiquier un dashboard figé/confus).
+        afficherRenouvellement("expire", "Ton abonnement a expiré. Renouvelle-le pour continuer.");
+      }
+    } catch (e) {
+      // Pas de réseau pour vérifier : on laisse quand même l'accès au dashboard,
+      // qui gérera lui-même l'absence de réseau.
+      window.location.href = "dashboard.html";
+    }
   }
+
+  function calculerJoursRestants(expireLe) {
+    if (!expireLe || expireLe.length < 10) return null;
+    const datePart = expireLe.substring(0, 10);
+    const dateExpiration = new Date(datePart + "T00:00:00Z");
+    const aujourdHui = new Date();
+    aujourdHui.setUTCHours(0, 0, 0, 0);
+    const diffMs = dateExpiration.getTime() - aujourdHui.getTime();
+    return Math.round(diffMs / (1000 * 60 * 60 * 24));
+  }
+
+  function afficherRenouvellement(type, texte) {
+    document.getElementById("carteActivation").style.display = "none";
+    const carte = document.getElementById("carteRenouvellement");
+    carte.style.display = "block";
+    document.getElementById("nomBoutiqueRenouv").textContent =
+      localStorage.getItem("nom_boutique") || "";
+    const statutEl = document.getElementById("statutRenouv");
+    statutEl.className = "statut-renouvellement " + type;
+    statutEl.textContent = texte;
+
+    // "Continuer sans renouveler" n'a de sens que si l'abonnement est encore
+    // actif (juste bientôt expiré) — s'il est déjà expiré, le dashboard ne
+    // servira de toute façon à rien tant que ce n'est pas renouvelé.
+    document.getElementById("btn-continuer-sans-renouveler").style.display =
+      type === "bientot" ? "block" : "none";
+  }
+
+  verifierStatutEtRediriger();
+
+  document.getElementById("btn-continuer-sans-renouveler")
+    .addEventListener("click", () => window.location.href = "dashboard.html");
+
+  document.getElementById("form-renouvellement").addEventListener("submit", async function(e) {
+    e.preventDefault();
+    const btnRenouv = document.getElementById("btn-renouveler");
+    const msgRenouv = document.getElementById("msgRenouv");
+    msgRenouv.className = "msg";
+    msgRenouv.textContent = "";
+    btnRenouv.disabled = true;
+    btnRenouv.textContent = "Renouvellement...";
+
+    try {
+      const r = await fetch("/api/renouveler", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          code: document.getElementById("codeRenouv").value.trim(),
+          boutique_id: localStorage.getItem("boutique_id")
+        })
+      });
+      const d = await r.json();
+
+      if (d.succes) {
+        msgRenouv.className = "msg succes";
+        msgRenouv.textContent = "Abonnement renouvelé ! Redirection...";
+        setTimeout(() => window.location.href = "dashboard.html", 900);
+      } else {
+        msgRenouv.className = "msg erreur";
+        msgRenouv.textContent = d.message || "Code invalide";
+        btnRenouv.disabled = false;
+        btnRenouv.textContent = "Renouveler";
+      }
+    } catch (err) {
+      msgRenouv.className = "msg erreur";
+      msgRenouv.textContent = "Erreur de connexion — réessaie";
+      btnRenouv.disabled = false;
+      btnRenouv.textContent = "Renouveler";
+    }
+  });
 
   form.addEventListener("submit", async function(e) {
     e.preventDefault();
@@ -107,7 +233,8 @@
       nom_boutique: document.getElementById("nom_boutique").value.trim(),
       nom_dg:       document.getElementById("nom_dg").value.trim(),
       telephone:    document.getElementById("telephone").value.trim(),
-      ville:        document.getElementById("ville").value.trim()
+      ville:        document.getElementById("ville").value.trim(),
+      mot_de_passe: document.getElementById("mot_de_passe").value
     };
 
     try {
@@ -121,6 +248,7 @@
       if (d.succes) {
         localStorage.setItem("boutique_id", d.boutique_id);
         localStorage.setItem("nom_boutique", d.nom_boutique);
+        sessionStorage.setItem("dashboard_mdp_" + d.boutique_id, payload.mot_de_passe);
         msg.className = "msg succes";
         msg.textContent = "Boutique activée ! Redirection...";
         setTimeout(() => window.location.href = "dashboard.html", 900);

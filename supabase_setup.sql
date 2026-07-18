@@ -145,3 +145,9 @@ on conflict (code) do nothing;
 -- Fonctions créées : activer_code, abonnement_actif
 -- 15 codes prédéfinis insérés
 -- ============================================================
+
+-- ── AJOUT (17/07/2026) : mot de passe par boutique ──────────────
+-- Chaque boutique a désormais son propre mot de passe pour accéder à son
+-- dashboard, afin qu'une personne non autorisée ne puisse pas fouiller dans
+-- les transactions d'une boutique juste en ayant accès au téléphone.
+alter table boutiques add column if not exists mot_de_passe text;

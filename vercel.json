@@ -13,6 +13,9 @@
     { "src": "/api/verifier", "dest": "/api/verifier.py" },
     { "src": "/api/admin_generer_code", "dest": "/api/admin_generer_code.py" },
     { "src": "/api/admin_liste", "dest": "/api/admin_liste.py" },
+    { "src": "/api/renouveler", "dest": "/api/renouveler.py" },
+    { "src": "/api/dashboard_connexion", "dest": "/api/dashboard_connexion.py" },
+    { "src": "/api/definir_mot_de_passe", "dest": "/api/definir_mot_de_passe.py" },
     { "src": "/", "dest": "/index.html" },
     { "src": "/(.*)", "dest": "/$1" }
   ]
