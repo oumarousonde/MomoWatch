@@ -16,6 +16,9 @@
     { "src": "/api/renouveler", "dest": "/api/renouveler.py" },
     { "src": "/api/dashboard_connexion", "dest": "/api/dashboard_connexion.py" },
     { "src": "/api/definir_mot_de_passe", "dest": "/api/definir_mot_de_passe.py" },
+    { "src": "/api/mois_disponibles", "dest": "/api/mois_disponibles.py" },
+    { "src": "/api/modifier_boutique", "dest": "/api/modifier_boutique.py" },
+    { "src": "/api/statistiques", "dest": "/api/statistiques.py" },
     { "src": "/", "dest": "/index.html" },
     { "src": "/(.*)", "dest": "/$1" }
   ]

@@ -67,6 +67,29 @@
   .table-scroll { overflow-x: auto; }
   .msg { margin-top: 10px; font-size: 13px; }
   .msg.erreur { color: var(--rouge); }
+
+  .overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.75); z-index: 200;
+    align-items: center; justify-content: center;
+  }
+  .overlay.show { display: flex; }
+  .modal {
+    background: var(--gf); border: 1px solid var(--gm);
+    border-radius: 14px; padding: 24px; width: 290px;
+  }
+  .modal h3 { font-size: 15px; font-weight: 700; margin-bottom: 14px; }
+  .modal input, .modal select {
+    width: 100%; padding: 10px 12px; border-radius: 8px;
+    border: 1px solid var(--gm); background: var(--noir); color: var(--blanc);
+  }
+  .modal-btns { display: flex; gap: 10px; margin-top: 14px; }
+  .btn-cancel, .btn-ok {
+    flex: 1; padding: 10px; border: none; border-radius: 8px;
+    font-weight: 700; cursor: pointer; font-size: 13px;
+  }
+  .btn-cancel { background: var(--gm); color: var(--blanc); }
+  .btn-ok { background: var(--orange); color: var(--blanc); }
 </style>
 </head>
 <body>
@@ -115,13 +138,40 @@
       <table>
         <thead>
           <tr>
-            <th>Code</th><th>Durée</th><th>Statut</th><th>Boutique</th><th>DG</th><th>Téléphone</th><th>Expire le</th><th>ID boutique</th>
+            <th>Code</th><th>Durée</th><th>Statut</th><th>Boutique</th><th>DG</th><th>Téléphone</th><th>Expire le</th><th>ID boutique</th><th>Renouveler</th>
           </tr>
         </thead>
         <tbody id="corps-table">
-          <tr><td colspan="8">Chargement...</td></tr>
+          <tr><td colspan="9">Chargement...</td></tr>
         </tbody>
       </table>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="overlayRenouv">
+  <div class="modal">
+    <h3 id="renouv-titre">Renouveler</h3>
+    <select id="renouv-duree" style="width:100%;padding:10px;border-radius:8px;border:1px solid #2A2A2A;
+            background:#0E0E0E;color:#fff;margin-bottom:10px;">
+      <option value="30">1 mois</option>
+      <option value="90">3 mois</option>
+      <option value="365">12 mois</option>
+    </select>
+    <div style="display:flex;gap:8px;margin-bottom:8px;">
+      <input type="text" id="renouv-indicatif" placeholder="Indicatif"
+             style="width:70px;padding:10px 8px;border-radius:8px;border:1px solid #2A2A2A;
+                    background:#0E0E0E;color:#fff;text-align:center;">
+      <input type="tel" id="renouv-numero" placeholder="Numéro"
+             style="flex:1;padding:10px 12px;border-radius:8px;border:1px solid #2A2A2A;
+                    background:#0E0E0E;color:#fff;">
+    </div>
+    <div id="renouv-erreur" style="color:#F44336;font-size:13px;margin-bottom:8px;display:none;"></div>
+    <div id="renouv-resultat" style="color:#FF7900;font-family:monospace;font-size:14px;
+         margin-bottom:8px;display:none;text-align:center;"></div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="fermerRenouvellementLigne()">Fermer</button>
+      <button class="btn-ok" id="btnGenererEtEnvoyer">Générer & Envoyer</button>
     </div>
   </div>
 </div>
@@ -173,7 +223,7 @@
   function afficherCodes(codes) {
     const corps = document.getElementById("corps-table");
     if (!codes || codes.length === 0) {
-      corps.innerHTML = "<tr><td colspan='8'>Aucun code pour l'instant</td></tr>";
+      corps.innerHTML = "<tr><td colspan='9'>Aucun code pour l'instant</td></tr>";
       return;
     }
 
@@ -217,8 +267,20 @@
         <td style="font-family:monospace;font-size:11px;cursor:pointer;"
             title="Cliquer pour copier"
             onclick="navigator.clipboard.writeText('${c.boutique_id || ""}')">${c.boutique_id ? c.boutique_id.slice(0,8) + "…" : "—"}</td>
+        <td>${c.boutique_id ? `<button class="btn-renouv-ligne"
+              data-boutique-id="${c.boutique_id}"
+              data-nom-boutique="${(boutique.nom_boutique || "").replace(/"/g, '&quot;')}"
+              data-telephone="${boutique.telephone || ""}"
+              style="padding:6px 10px;border:none;border-radius:6px;background:#25D366;
+                     color:#fff;font-weight:700;cursor:pointer;font-size:11px;">📱 Renouveler</button>` : "—"}</td>
       </tr>`;
     }).join("");
+
+    document.querySelectorAll(".btn-renouv-ligne").forEach(btn => {
+      btn.addEventListener("click", () => ouvrirRenouvellementLigne(
+        btn.dataset.boutiqueId, btn.dataset.nomBoutique, btn.dataset.telephone
+      ));
+    });
   }
 
   const LABEL_DUREE_WA = {30: '1 mois', 90: '3 mois', 365: '12 mois'};
@@ -273,6 +335,72 @@
     const d = await r.json();
     if (d.succes) afficherCodes(d.codes);
   }
+
+  // ── Renouvellement par ligne (boutique existante) ──────────────
+  let renouvContexte = null; // { boutiqueId, nomBoutique, telephone }
+
+  function ouvrirRenouvellementLigne(boutiqueId, nomBoutique, telephone) {
+    renouvContexte = { boutiqueId, nomBoutique, telephone };
+    document.getElementById("renouv-titre").textContent =
+      `Renouveler : ${nomBoutique || "boutique"}`;
+    document.getElementById("renouv-indicatif").value = "226";
+    document.getElementById("renouv-numero").value = (telephone || "").replace(/[^0-9]/g, "");
+    document.getElementById("renouv-erreur").style.display = "none";
+    document.getElementById("renouv-resultat").style.display = "none";
+    document.getElementById("overlayRenouv").classList.add("show");
+  }
+  function fermerRenouvellementLigne() {
+    document.getElementById("overlayRenouv").classList.remove("show");
+  }
+
+  document.getElementById("btnGenererEtEnvoyer").addEventListener("click", async () => {
+    if (!renouvContexte) return;
+    const duree = parseInt(document.getElementById("renouv-duree").value, 10);
+    const erreurEl = document.getElementById("renouv-erreur");
+    erreurEl.style.display = "none";
+    const btn = document.getElementById("btnGenererEtEnvoyer");
+    btn.disabled = true; btn.textContent = "Génération...";
+
+    try {
+      const r = await fetch("/api/admin_generer_code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mot_de_passe: MOT_DE_PASSE, duree_jours: duree })
+      });
+      const d = await r.json();
+      btn.disabled = false; btn.textContent = "Générer & Envoyer";
+
+      if (!d.succes) {
+        erreurEl.textContent = d.message || "Erreur";
+        erreurEl.style.display = "block";
+        return;
+      }
+
+      const indicatif = document.getElementById("renouv-indicatif").value.replace(/[^0-9]/g, "");
+      const numero = document.getElementById("renouv-numero").value.replace(/[^0-9]/g, "");
+      const resultatEl = document.getElementById("renouv-resultat");
+      resultatEl.textContent = "✅ " + d.code;
+      resultatEl.style.display = "block";
+
+      if (indicatif && numero) {
+        const tel = indicatif + numero;
+        const message = `Bonjour ${renouvContexte.nomBoutique}, voici votre code de renouvellement `
+          + `MomoWatch (${LABEL_DUREE_WA[duree] || ""}) : ${d.code}. `
+          + `Entrez-le dans votre application pour renouveler votre abonnement.`;
+        window.open(`https://wa.me/${tel}?text=${encodeURIComponent(message)}`, "_blank");
+      }
+
+      rafraichirListe();
+    } catch (e) {
+      btn.disabled = false; btn.textContent = "Générer & Envoyer";
+      erreurEl.textContent = "Erreur réseau";
+      erreurEl.style.display = "block";
+    }
+  });
+
+  document.getElementById("overlayRenouv").addEventListener("click", function(e) {
+    if (e.target === this) fermerRenouvellementLigne();
+  });
 </script>
 
 </body>
