@@ -28,37 +28,31 @@ class handler(BaseHTTPRequestHandler):
 
             b = boutique[0]
 
-            # Boutiques activées AVANT l'ajout de cette fonctionnalité : pas encore
-            # de mot de passe enregistré. On laisse passer une seule fois mais on
-            # signale au front qu'il doit en faire définir un immédiatement.
-            if not b.get("mot_de_passe"):
-                self._rep(200, {
-                    "succes": True,
-                    "mot_de_passe_a_definir": True,
-                    "nom_boutique": b["nom_boutique"],
-                    "nom_dg": b.get("nom_dg"),
-                    "telephone": b.get("telephone"),
-                    "ville": b.get("ville")
-                })
-                return
-
-            if b.get("mot_de_passe") != mot_de_passe:
+            # Même vérification que pour l'accès au dashboard : on ne modifie rien
+            # sans le bon mot de passe, même en connaissant le boutique_id.
+            if b.get("mot_de_passe") and b.get("mot_de_passe") != mot_de_passe:
                 self._rep(401, {"succes": False, "message": "Mot de passe incorrect"})
                 return
 
-            self._rep(200, {
-                "succes": True,
-                "mot_de_passe_a_definir": False,
-                "nom_boutique": b["nom_boutique"],
-                "nom_dg": b.get("nom_dg"),
-                "telephone": b.get("telephone"),
-                "ville": b.get("ville")
-            })
+            champs_modifiables = ["nom_boutique", "nom_dg", "telephone", "ville"]
+            mise_a_jour = {}
+            for champ in champs_modifiables:
+                valeur = data.get(champ)
+                if valeur is not None and str(valeur).strip():
+                    mise_a_jour[champ] = str(valeur).strip()
+
+            if not mise_a_jour:
+                self._rep(400, {"succes": False, "message": "Aucune information à modifier"})
+                return
+
+            supabase.table("boutiques").update(mise_a_jour).eq("id", boutique_id).execute()
+
+            self._rep(200, {"succes": True, "message": "Informations mises à jour"})
         except Exception as e:
             self._rep(500, {"succes": False, "message": str(e)})
 
     def do_GET(self):
-        self._rep(200, {"statut": "Connexion dashboard MomoWatch ✅"})
+        self._rep(200, {"statut": "Modification boutique MomoWatch ✅"})
 
     def _rep(self, code, data):
         self.send_response(code)
