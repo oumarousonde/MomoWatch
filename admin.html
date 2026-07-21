@@ -106,6 +106,34 @@
 <div id="ecran-admin">
   <h1 class="titre">Momo<span>Watch</span> — Admin</h1>
 
+  <div id="vue-ensemble" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
+       gap:10px;margin-bottom:20px;">
+    <div style="background:var(--gf);border:1px solid var(--gm);border-radius:12px;padding:14px;">
+      <div style="color:var(--gt);font-size:12px;">Boutiques au total</div>
+      <div id="vue-total" style="color:var(--blanc);font-size:22px;font-weight:800;">—</div>
+    </div>
+    <div style="background:var(--gf);border:1px solid var(--gm);border-radius:12px;padding:14px;">
+      <div style="color:var(--gt);font-size:12px;">Actives</div>
+      <div id="vue-actives" style="color:var(--vert);font-size:22px;font-weight:800;">—</div>
+    </div>
+    <div style="background:var(--gf);border:1px solid var(--gm);border-radius:12px;padding:14px;">
+      <div style="color:var(--gt);font-size:12px;">Expirent sous 7j</div>
+      <div id="vue-expirant" style="color:var(--orange);font-size:22px;font-weight:800;">—</div>
+    </div>
+    <div style="background:var(--gf);border:1px solid var(--gm);border-radius:12px;padding:14px;">
+      <div style="color:var(--gt);font-size:12px;">Expirées</div>
+      <div id="vue-expirees" style="color:var(--rouge);font-size:22px;font-weight:800;">—</div>
+    </div>
+    <div style="background:var(--gf);border:1px solid var(--gm);border-radius:12px;padding:14px;">
+      <div style="color:var(--gt);font-size:12px;">Nouvelles ce mois</div>
+      <div id="vue-nouvelles" style="color:var(--blanc);font-size:22px;font-weight:800;">—</div>
+    </div>
+    <div style="background:var(--gf);border:1px solid var(--gm);border-radius:12px;padding:14px;">
+      <div style="color:var(--gt);font-size:12px;">Codes non utilisés</div>
+      <div id="vue-codes-dispo" style="color:var(--blanc);font-size:22px;font-weight:800;">—</div>
+    </div>
+  </div>
+
   <div class="bloc">
     <h2>Générer un nouveau code d'activation</h2>
     <select id="duree-select">
@@ -203,6 +231,7 @@
       document.getElementById("ecran-connexion").style.display = "none";
       document.getElementById("ecran-admin").style.display = "block";
       afficherCodes(d.codes);
+      chargerVueEnsemble();
     } catch (e) {
       document.getElementById("msg-connexion").textContent = "Erreur de connexion";
     }
@@ -334,6 +363,23 @@
     const r = await fetch(`/api/admin_liste?mot_de_passe=${encodeURIComponent(MOT_DE_PASSE)}`);
     const d = await r.json();
     if (d.succes) afficherCodes(d.codes);
+    chargerVueEnsemble();
+  }
+
+  async function chargerVueEnsemble() {
+    try {
+      const r = await fetch(`/api/admin_stats?mot_de_passe=${encodeURIComponent(MOT_DE_PASSE)}`);
+      const d = await r.json();
+      if (!d.succes) return;
+      document.getElementById("vue-total").textContent = d.total_boutiques;
+      document.getElementById("vue-actives").textContent = d.actives;
+      document.getElementById("vue-expirant").textContent = d.expirant_7_jours;
+      document.getElementById("vue-expirees").textContent = d.expirees;
+      document.getElementById("vue-nouvelles").textContent = d.nouvelles_ce_mois;
+      document.getElementById("vue-codes-dispo").textContent = d.codes_disponibles_non_utilises;
+    } catch (e) {
+      // Silencieux : la vue d'ensemble n'est pas critique, le reste de la page admin fonctionne sans.
+    }
   }
 
   // ── Renouvellement par ligne (boutique existante) ──────────────

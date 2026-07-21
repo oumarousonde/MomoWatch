@@ -89,6 +89,37 @@
     <button type="submit" id="btn-activer">Activer</button>
     <div class="msg" id="msg"></div>
   </form>
+
+  <div style="text-align:center;margin-top:16px;">
+    <span onclick="afficherRecuperation()" style="color:#9A9A9A;font-size:13px;text-decoration:underline;cursor:pointer;">
+      Déjà activé sur un autre téléphone ? Récupérer mon accès
+    </span>
+  </div>
+</div>
+
+<div class="carte" id="carteRecuperation" style="display:none;">
+  <div class="logo-zone">
+    <img src="logo.png" alt="MomoWatch">
+  </div>
+  <h1>Récupérer mon accès</h1>
+  <div class="sous-titre">Ton téléphone a changé ou a été perdu ? Retrouve ta boutique avec son numéro et son mot de passe.</div>
+
+  <form id="form-recuperation">
+    <label>Téléphone de la boutique</label>
+    <input type="tel" id="rec-telephone" placeholder="Ex : 70112233" required>
+
+    <label>Mot de passe du dashboard</label>
+    <input type="password" id="rec-mot-de-passe" placeholder="Mot de passe" required>
+
+    <button type="submit" id="btn-recuperer">Récupérer</button>
+    <div class="msg" id="msgRecup"></div>
+  </form>
+
+  <div style="text-align:center;margin-top:16px;">
+    <span onclick="masquerRecuperation()" style="color:#9A9A9A;font-size:13px;text-decoration:underline;cursor:pointer;">
+      Retour à l'activation
+    </span>
+  </div>
 </div>
 
 <div class="carte" id="carteRenouvellement" style="display:none;">
@@ -179,6 +210,84 @@
   }
 
   verifierStatutEtRediriger();
+
+  function afficherRecuperation() {
+    document.getElementById("carteActivation").style.display = "none";
+    document.getElementById("carteRecuperation").style.display = "block";
+  }
+  function masquerRecuperation() {
+    document.getElementById("carteRecuperation").style.display = "none";
+    document.getElementById("carteActivation").style.display = "block";
+  }
+
+  document.getElementById("form-recuperation").addEventListener("submit", async function(e) {
+    e.preventDefault();
+    const btnRecup = document.getElementById("btn-recuperer");
+    const msgRecup = document.getElementById("msgRecup");
+    msgRecup.className = "msg";
+    msgRecup.textContent = "";
+    btnRecup.disabled = true;
+    btnRecup.textContent = "Recherche...";
+
+    try {
+      const r = await fetch("/api/recuperer_acces", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          telephone: document.getElementById("rec-telephone").value.trim(),
+          mot_de_passe: document.getElementById("rec-mot-de-passe").value
+        })
+      });
+      const d = await r.json();
+
+      if (!d.succes) {
+        msgRecup.className = "msg erreur";
+        msgRecup.textContent = d.message || "Téléphone ou mot de passe incorrect";
+        btnRecup.disabled = false;
+        btnRecup.textContent = "Récupérer";
+        return;
+      }
+
+      if (d.plusieurs) {
+        // Rare : plusieurs boutiques partagent ce numéro + mot de passe.
+        // On affiche la liste pour laisser la personne choisir.
+        const nom = prompt(
+          "Plusieurs boutiques trouvées avec ces identifiants :\n" +
+          d.boutiques.map((b, i) => `${i + 1}. ${b.nom_boutique}`).join("\n") +
+          "\n\nTape le numéro de celle que tu veux récupérer :"
+        );
+        const choix = d.boutiques[parseInt(nom, 10) - 1];
+        if (!choix) {
+          btnRecup.disabled = false;
+          btnRecup.textContent = "Récupérer";
+          return;
+        }
+        localStorage.setItem("boutique_id", choix.boutique_id);
+        localStorage.setItem("nom_boutique", choix.nom_boutique);
+      } else {
+        localStorage.setItem("boutique_id", d.boutique_id);
+        localStorage.setItem("nom_boutique", d.nom_boutique);
+        if (d.nom_dg) localStorage.setItem("nom_dg", d.nom_dg);
+        if (d.telephone) localStorage.setItem("telephone", d.telephone);
+        if (d.ville) localStorage.setItem("ville", d.ville);
+      }
+
+      sessionStorage.setItem(
+        "dashboard_mdp_" + (localStorage.getItem("boutique_id")),
+        document.getElementById("rec-mot-de-passe").value
+      );
+
+      msgRecup.className = "msg succes";
+      msgRecup.textContent = "Accès retrouvé ! Redirection...";
+      setTimeout(() => window.location.href = "dashboard.html", 900);
+    } catch (err) {
+      msgRecup.className = "msg erreur";
+      msgRecup.textContent = "Erreur de connexion — réessaie";
+      btnRecup.disabled = false;
+      btnRecup.textContent = "Récupérer";
+    }
+  });
+
 
   document.getElementById("btn-continuer-sans-renouveler")
     .addEventListener("click", () => window.location.href = "dashboard.html");

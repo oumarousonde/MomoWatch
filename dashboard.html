@@ -150,6 +150,7 @@
 
   @media (max-width: 400px) { .f-grid { grid-template-columns: 1fr; } }
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
 </head>
 <body>
 
@@ -196,6 +197,7 @@
     <div id="btnParametres" onclick="ouvrirParametres()" style="cursor:pointer;font-size:18px;" title="Paramètres">⚙️</div>
     <div class="cloche" id="cloche" onclick="ouvrirCloche()">🔔<div class="cloche-badge" id="cloche-badge">0</div></div>
     <div class="statut"><div class="dot"></div>Actif</div>
+    <div id="joursRestants" style="color:var(--gt);font-size:11px;margin-left:8px;"></div>
   </div>
 </nav>
 
@@ -250,7 +252,13 @@
 
   <div class="liste-header">
     <div class="liste-titre">Transactions</div>
-    <div class="badge" id="badge">0</div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <button id="btnExportExcel" style="padding:6px 12px;border:1px solid #FF7900;border-radius:8px;
+              background:transparent;color:#FF7900;font-weight:700;cursor:pointer;font-size:12px;">
+        📊 Excel
+      </button>
+      <div class="badge" id="badge">0</div>
+    </div>
   </div>
   <div class="liste" id="liste"><div class="loading">Chargement...</div></div>
 
@@ -385,6 +393,8 @@
 <script>
   // Vérifie que la boutique est activée sur cet appareil, sinon renvoie vers l'activation
   const BOUTIQUE_ID = localStorage.getItem("boutique_id");
+  let dernieresTransactionsAffichees = [];
+  let dernierFiltreAffiche = {};
 
   const idAffEl = document.getElementById("idBoutiqueAffiche");
   if (idAffEl) idAffEl.textContent = BOUTIQUE_ID || "Non disponible";
@@ -403,6 +413,109 @@
   }
 
   function fmt(n) { return Number(n||0).toLocaleString("fr-FR") + " FCFA"; }
+
+  document.getElementById("btnExportExcel").addEventListener("click", exporterExcel);
+
+  async function exporterExcel() {
+    const btn = document.getElementById("btnExportExcel");
+    if (dernieresTransactionsAffichees.length === 0) {
+      alert("Aucune transaction à exporter pour ce filtre.");
+      return;
+    }
+    btn.disabled = true;
+    btn.textContent = "Génération...";
+
+    try {
+      const workbook = new ExcelJS.Workbook();
+      const nomBoutique = localStorage.getItem("nom_boutique") || "Boutique";
+      const feuille = workbook.addWorksheet("Transactions");
+
+      feuille.columns = [
+        { header: "Date", key: "date", width: 20 },
+        { header: "Client", key: "client", width: 24 },
+        { header: "Opérateur", key: "operateur", width: 16 },
+        { header: "Type", key: "type", width: 12 },
+        { header: "Montant (FCFA)", key: "montant", width: 18 }
+      ];
+
+      // En-tête : fond orange MomoWatch, texte blanc gras
+      const ligneEntete = feuille.getRow(1);
+      ligneEntete.eachCell(cell => {
+        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFF7900" } };
+        cell.font = { color: { argb: "FFFFFFFF" }, bold: true };
+        cell.alignment = { vertical: "middle", horizontal: "center" };
+      });
+
+      let totalDepot = 0, totalRetrait = 0;
+
+      dernieresTransactionsAffichees.forEach(t => {
+        const estRetrait = t.type === "Retrait";
+        if (estRetrait) totalRetrait += Number(t.montant || 0);
+        else totalDepot += Number(t.montant || 0);
+
+        const ligne = feuille.addRow({
+          date: fmtDate(t.date_heure),
+          client: t.client || "Inconnu",
+          operateur: t.operateur || "",
+          type: t.type || "",
+          montant: Number(t.montant || 0)
+        });
+
+        // Montant en vert pour un dépôt, en rouge pour un retrait
+        const celluleMontant = ligne.getCell("montant");
+        celluleMontant.font = { color: { argb: estRetrait ? "FFF44336" : "FF4CAF50" }, bold: true };
+        celluleMontant.numFmt = "#,##0";
+      });
+
+      // Ligne vide puis ligne de totaux
+      feuille.addRow({});
+      const ligneTotalDepot = feuille.addRow({ client: "TOTAL DÉPÔTS", montant: totalDepot });
+      ligneTotalDepot.getCell("client").font = { bold: true };
+      ligneTotalDepot.getCell("montant").font = { bold: true, color: { argb: "FF4CAF50" } };
+      ligneTotalDepot.getCell("montant").numFmt = "#,##0";
+
+      const ligneTotalRetrait = feuille.addRow({ client: "TOTAL RETRAITS", montant: totalRetrait });
+      ligneTotalRetrait.getCell("client").font = { bold: true };
+      ligneTotalRetrait.getCell("montant").font = { bold: true, color: { argb: "FFF44336" } };
+      ligneTotalRetrait.getCell("montant").numFmt = "#,##0";
+
+      const ligneSolde = feuille.addRow({ client: "SOLDE NET", montant: totalDepot - totalRetrait });
+      ligneSolde.getCell("client").font = { bold: true };
+      ligneSolde.getCell("montant").font = { bold: true };
+      ligneSolde.getCell("montant").numFmt = "#,##0";
+      ligneSolde.eachCell(cell => {
+        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1A1A1A" } };
+      });
+      ligneSolde.getCell("client").font = { bold: true, color: { argb: "FFFFFFFF" } };
+      ligneSolde.getCell("montant").font = { bold: true, color: { argb: "FFFFFFFF" } };
+
+      feuille.getColumn("montant").alignment = { horizontal: "right" };
+
+      // Nom de fichier : boutique + période filtrée si présente, sinon la date du jour
+      const f = dernierFiltreAffiche || {};
+      let suffixe = new Date().toISOString().split("T")[0];
+      if (f.date_debut || f.date_fin) {
+        suffixe = `${f.date_debut || "debut"}_a_${f.date_fin || "aujourdhui"}`;
+      }
+      const nomFichier = `MomoWatch_${nomBoutique.replace(/[^a-zA-Z0-9]/g, "_")}_${suffixe}.xlsx`;
+
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+      const url = URL.createObjectURL(blob);
+      const lien = document.createElement("a");
+      lien.href = url;
+      lien.download = nomFichier;
+      document.body.appendChild(lien);
+      lien.click();
+      document.body.removeChild(lien);
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      alert("Erreur lors de la génération du fichier Excel");
+    }
+
+    btn.disabled = false;
+    btn.textContent = "📊 Excel";
+  }
   function fmtDate(s) {
     if (!s) return "";
     const d = new Date(s);
@@ -610,6 +723,8 @@
       const r = await fetch(`/api/summary?${p}`);
       const d = await r.json();
       const txs = d.transactions || [];
+      dernieresTransactionsAffichees = txs;
+      dernierFiltreAffiche = { operateur, type, date_debut, date_fin, client };
 
       document.getElementById("v-filtre").textContent = fmt(d.total_montant);
       document.getElementById("n-filtre").textContent = `${d.nombre_transactions || 0} transaction(s)`;
@@ -710,6 +825,40 @@
     charger();
     chargerHistorique();
     chargerStatistiques();
+    afficherJoursRestants();
+  }
+
+  async function afficherJoursRestants() {
+    const zone = document.getElementById("joursRestants");
+    try {
+      const r = await fetch(`/api/verifier?boutique_id=${BOUTIQUE_ID}`);
+      const d = await r.json();
+      if (!d.actif) {
+        zone.textContent = "Expiré";
+        zone.style.color = "#F44336";
+        return;
+      }
+      const expireLe = d.expire_le;
+      if (!expireLe || expireLe.length < 10) { zone.textContent = ""; return; }
+
+      const dateExpiration = new Date(expireLe.slice(0, 10) + "T00:00:00Z");
+      const aujourdhui = new Date();
+      aujourdhui.setUTCHours(0, 0, 0, 0);
+      const joursRestants = Math.round((dateExpiration - aujourdhui) / (1000 * 60 * 60 * 24));
+
+      if (joursRestants <= 0) {
+        zone.textContent = "Expire aujourd'hui";
+        zone.style.color = "#F44336";
+      } else if (joursRestants <= 5) {
+        zone.textContent = `${joursRestants} jour${joursRestants > 1 ? "s" : ""} restant${joursRestants > 1 ? "s" : ""}`;
+        zone.style.color = "#FF7900";
+      } else {
+        zone.textContent = `${joursRestants} jours restants`;
+        zone.style.color = "#9A9A9A";
+      }
+    } catch (e) {
+      zone.textContent = "";
+    }
   }
 
   async function chargerStatistiques() {
