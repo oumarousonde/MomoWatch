@@ -368,7 +368,7 @@
 
   async function chargerVueEnsemble() {
     try {
-      const r = await fetch(`/api/admin_stats?mot_de_passe=${encodeURIComponent(MOT_DE_PASSE)}`);
+      const r = await fetch(`/api/admin_liste?mot_de_passe=${encodeURIComponent(MOT_DE_PASSE)}&vue=stats`);
       const d = await r.json();
       if (!d.succes) return;
       document.getElementById("vue-total").textContent = d.total_boutiques;

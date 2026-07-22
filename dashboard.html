@@ -583,10 +583,11 @@
     btn.disabled = true; btn.textContent = "Enregistrement...";
 
     try {
-      const r = await fetch("/api/modifier_boutique", {
+      const r = await fetch("/api/compte_boutique", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          action: "modifier_infos",
           boutique_id: BOUTIQUE_ID,
           mot_de_passe: motDePasseSession(),
           nom_boutique: document.getElementById("p-nom-boutique").value.trim(),
@@ -638,10 +639,11 @@
     btn.disabled = true; btn.textContent = "Changement...";
 
     try {
-      const r = await fetch("/api/definir_mot_de_passe", {
+      const r = await fetch("/api/compte_boutique", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          action: "changer_mot_de_passe",
           boutique_id: BOUTIQUE_ID,
           ancien_mot_de_passe: ancien,
           nouveau_mot_de_passe: nouveau
@@ -993,10 +995,10 @@
 
     async function verifier(motDePasse) {
       try {
-        const r = await fetch("/api/dashboard_connexion", {
+        const r = await fetch("/api/compte_boutique", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ boutique_id: BOUTIQUE_ID, mot_de_passe: motDePasse })
+          body: JSON.stringify({ action: "connexion", boutique_id: BOUTIQUE_ID, mot_de_passe: motDePasse })
         });
         const d = await r.json();
         return { ok: r.ok, ...d };
@@ -1077,10 +1079,10 @@
       btn.disabled = true; btn.textContent = "Enregistrement...";
 
       try {
-        const r = await fetch("/api/definir_mot_de_passe", {
+        const r = await fetch("/api/compte_boutique", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ boutique_id: BOUTIQUE_ID, nouveau_mot_de_passe: nouveau })
+          body: JSON.stringify({ action: "changer_mot_de_passe", boutique_id: BOUTIQUE_ID, nouveau_mot_de_passe: nouveau })
         });
         const d = await r.json();
         btn.disabled = false; btn.textContent = "Définir ce mot de passe";
