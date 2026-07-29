@@ -583,11 +583,10 @@
     btn.disabled = true; btn.textContent = "Enregistrement...";
 
     try {
-      const r = await fetch("/api/compte_boutique", {
+      const r = await fetch("/api/modifier_boutique", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          action: "modifier_infos",
           boutique_id: BOUTIQUE_ID,
           mot_de_passe: motDePasseSession(),
           nom_boutique: document.getElementById("p-nom-boutique").value.trim(),
@@ -639,11 +638,10 @@
     btn.disabled = true; btn.textContent = "Changement...";
 
     try {
-      const r = await fetch("/api/compte_boutique", {
+      const r = await fetch("/api/definir_mot_de_passe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          action: "changer_mot_de_passe",
           boutique_id: BOUTIQUE_ID,
           ancien_mot_de_passe: ancien,
           nouveau_mot_de_passe: nouveau
@@ -995,10 +993,10 @@
 
     async function verifier(motDePasse) {
       try {
-        const r = await fetch("/api/compte_boutique", {
+        const r = await fetch("/api/dashboard_connexion", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "connexion", boutique_id: BOUTIQUE_ID, mot_de_passe: motDePasse })
+          body: JSON.stringify({ boutique_id: BOUTIQUE_ID, mot_de_passe: motDePasse })
         });
         const d = await r.json();
         return { ok: r.ok, ...d };
@@ -1079,10 +1077,10 @@
       btn.disabled = true; btn.textContent = "Enregistrement...";
 
       try {
-        const r = await fetch("/api/compte_boutique", {
+        const r = await fetch("/api/definir_mot_de_passe", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "changer_mot_de_passe", boutique_id: BOUTIQUE_ID, nouveau_mot_de_passe: nouveau })
+          body: JSON.stringify({ boutique_id: BOUTIQUE_ID, nouveau_mot_de_passe: nouveau })
         });
         const d = await r.json();
         btn.disabled = false; btn.textContent = "Définir ce mot de passe";
@@ -1108,5 +1106,34 @@
     });
   })();
 </script>
+<script>
+// Ajoute un bouton "œil" sur chaque champ mot de passe pour pouvoir
+// voir ce qu'on tape/a tapé, sans dépendre du gestionnaire de mots de
+// passe du navigateur.
+(function() {
+  document.querySelectorAll('input[type="password"]').forEach(function(champ) {
+    var enveloppe = document.createElement('div');
+    enveloppe.style.position = 'relative';
+    champ.parentNode.insertBefore(enveloppe, champ);
+    enveloppe.appendChild(champ);
+
+    champ.style.boxSizing = 'border-box';
+    champ.style.paddingRight = '38px';
+
+    var oeil = document.createElement('span');
+    oeil.textContent = '👁';
+    oeil.title = 'Afficher / masquer le mot de passe';
+    oeil.style.cssText = 'position:absolute;right:10px;top:50%;transform:translateY(-50%);'
+      + 'cursor:pointer;font-size:16px;user-select:none;opacity:0.55;line-height:1;';
+    oeil.addEventListener('click', function() {
+      var visible = champ.type === 'text';
+      champ.type = visible ? 'password' : 'text';
+      oeil.style.opacity = visible ? '0.55' : '1';
+    });
+    enveloppe.appendChild(oeil);
+  });
+})();
+</script>
+
 </body>
 </html>
