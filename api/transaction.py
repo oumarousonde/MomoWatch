@@ -31,11 +31,10 @@ class handler(BaseHTTPRequestHandler):
                 self._rep(403, {"statut": "erreur", "message": "Abonnement inactif ou expiré"})
                 return
 
-            # Insertion de la transaction avec la bonne colonne "telephone_client"
             supabase.table("transactions").insert({
                 "boutique_id": boutique_id,
                 "client":      data.get("client", "Inconnu"),
-                "telephone_client": data.get("telephone") or None,   # ← CORRECTION
+                "telephone_client": data.get("telephone_client") or data.get("telephone") or None,
                 "montant":     float(str(data.get("montant", 0)).replace(" ", "")),
                 "type":        data.get("type", ""),
                 "operateur":   data.get("operateur", ""),
