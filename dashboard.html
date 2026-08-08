@@ -825,7 +825,7 @@
           <div class="tx-g">
             <div class="tx-ico ${ret?"ico-r":"ico-d"}">${ret?"📤":"📥"}</div>
             <div>
-              <div class="tx-nom">${t.client||"Inconnu"}</div>
+              <div class="tx-nom">${t.client||"Inconnu"}${(t.telephone_client||t.telephone) ? ` · ${t.telephone_client||t.telephone}` : ""}</div>
               <div class="tx-info">${t.operateur||""} · ${t.type||""}</div>
             </div>
           </div>
