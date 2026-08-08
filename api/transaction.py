@@ -34,6 +34,7 @@ class handler(BaseHTTPRequestHandler):
             supabase.table("transactions").insert({
                 "boutique_id": boutique_id,
                 "client":      data.get("client", "Inconnu"),
+                "telephone_client": data.get("telephone_client") or data.get("telephone") or None,
                 "montant":     float(str(data.get("montant", 0)).replace(" ", "")),
                 "type":        data.get("type", ""),
                 "operateur":   data.get("operateur", ""),
