@@ -115,6 +115,24 @@
   .m-d { color: var(--vert); }
   .tx-heure { font-size: 11px; color: var(--gt); margin-top: 2px; }
 
+  .jour-groupe { margin-bottom: 16px; }
+  .jour-entete {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding: 2px 2px 8px 2px; border-bottom: 1px solid #222; margin-bottom: 8px;
+  }
+  .jour-libelle {
+    color: var(--orange); font-size: 12.5px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.4px;
+  }
+  .jour-soustotal { font-size: 11.5px; color: var(--gt); }
+  .jour-groupe .tx { margin-bottom: 8px; }
+  .btn-voir-plus {
+    width: 100%; background: var(--gf); border: 1px solid #333; color: #ccc;
+    border-radius: 10px; padding: 12px; font-size: 13px; font-weight: 600;
+    text-align: center; cursor: pointer; margin-top: 4px;
+  }
+  .btn-voir-plus small { display: block; color: var(--gt); font-weight: 400; margin-top: 2px; }
+
   .vide { text-align: center; padding: 40px 20px; color: var(--gt); font-size: 13px; }
   .vide-ico { font-size: 40px; margin-bottom: 10px; }
   .loading { text-align: center; padding: 30px; color: var(--gt); font-size: 13px; }
@@ -428,71 +446,104 @@
     try {
       const workbook = new ExcelJS.Workbook();
       const nomBoutique = localStorage.getItem("nom_boutique") || "Boutique";
-      const feuille = workbook.addWorksheet("Transactions");
+      const COL = { orange: "FFFF7900", orangeFonce: "FFCC5F00", vert: "FF2ECC71", rouge: "FFE74C3C",
+                    grisClair: "FFF4F4F4", blanc: "FFFFFFFF", grisTexte: "FF555555" };
 
-      feuille.columns = [
-        { header: "Date", key: "date", width: 20 },
-        { header: "Client", key: "client", width: 24 },
-        { header: "Opérateur", key: "operateur", width: 16 },
-        { header: "Type", key: "type", width: 12 },
-        { header: "Montant (FCFA)", key: "montant", width: 18 }
-      ];
-
-      // En-tête : fond orange MomoWatch, texte blanc gras
-      const ligneEntete = feuille.getRow(1);
-      ligneEntete.eachCell(cell => {
-        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFF7900" } };
-        cell.font = { color: { argb: "FFFFFFFF" }, bold: true };
-        cell.alignment = { vertical: "middle", horizontal: "center" };
+      const feuille = workbook.addWorksheet("Transactions", {
+        views: [{ state: "frozen", ySplit: 4 }]
       });
 
-      let totalDepot = 0, totalRetrait = 0;
+      const f = dernierFiltreAffiche || {};
+      let periode = "Toutes les transactions affichées";
+      if (f.date_debut || f.date_fin) {
+        periode = `Période : ${f.date_debut || "début"} → ${f.date_fin || "aujourd'hui"}`;
+      }
+      if (f.client) periode += `  ·  Client : ${f.client}`;
 
-      dernieresTransactionsAffichees.forEach(t => {
+      // Bandeau titre
+      feuille.mergeCells("A1:F1");
+      const t1 = feuille.getCell("A1");
+      t1.value = `📊 MomoWatch — ${nomBoutique}`;
+      t1.font = { bold: true, size: 16, color: { argb: COL.blanc } };
+      t1.alignment = { vertical: "middle", horizontal: "left", indent: 1 };
+      t1.fill = { type: "pattern", pattern: "solid", fgColor: { argb: COL.orange } };
+      feuille.getRow(1).height = 30;
+
+      // Sous-titre
+      feuille.mergeCells("A2:F2");
+      const t2 = feuille.getCell("A2");
+      t2.value = `${periode}   —   Généré le ${new Date().toLocaleDateString("fr-FR")}`;
+      t2.font = { italic: true, size: 10, color: { argb: COL.grisTexte } };
+      t2.alignment = { indent: 1 };
+      feuille.getRow(2).height = 18;
+      feuille.getRow(3).height = 6;
+
+      // En-têtes de colonnes (ligne 4)
+      const entetes = ["Date & heure", "Client", "Numéro", "Opérateur", "Type", "Montant (FCFA)"];
+      const ligneEntete = feuille.getRow(4);
+      entetes.forEach((texte, i) => {
+        const c = ligneEntete.getCell(i + 1);
+        c.value = texte;
+        c.font = { color: { argb: COL.blanc }, bold: true, size: 11 };
+        c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: COL.orangeFonce } };
+        c.alignment = { vertical: "middle", horizontal: "center" };
+        c.border = { bottom: { style: "medium", color: { argb: COL.orange } } };
+      });
+      ligneEntete.height = 22;
+      feuille.columns = [
+        { key: "date", width: 20 }, { key: "client", width: 24 }, { key: "telephone", width: 16 },
+        { key: "operateur", width: 16 }, { key: "type", width: 12 }, { key: "montant", width: 18 }
+      ];
+
+      let totalDepot = 0, totalRetrait = 0, ligneIdx = 5;
+
+      dernieresTransactionsAffichees.forEach((t, i) => {
         const estRetrait = t.type === "Retrait";
         if (estRetrait) totalRetrait += Number(t.montant || 0);
         else totalDepot += Number(t.montant || 0);
 
-        const ligne = feuille.addRow({
-          date: fmtDate(t.date_heure),
-          client: t.client || "Inconnu",
-          operateur: t.operateur || "",
-          type: t.type || "",
-          montant: Number(t.montant || 0)
-        });
+        const ligne = feuille.getRow(ligneIdx);
+        ligne.getCell(1).value = fmtDate(t.date_heure);
+        ligne.getCell(2).value = t.client || "Inconnu";
+        ligne.getCell(3).value = t.telephone_client || t.telephone || "—";
+        ligne.getCell(4).value = t.operateur || "";
+        ligne.getCell(5).value = (estRetrait ? "🔴 " : "🟢 ") + (t.type || "");
+        ligne.getCell(6).value = Number(t.montant || 0);
 
-        // Montant en vert pour un dépôt, en rouge pour un retrait
-        const celluleMontant = ligne.getCell("montant");
-        celluleMontant.font = { color: { argb: estRetrait ? "FFF44336" : "FF4CAF50" }, bold: true };
+        const fondBande = i % 2 === 0 ? COL.blanc : COL.grisClair;
+        for (let col = 1; col <= 6; col++) {
+          const cell = ligne.getCell(col);
+          cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: fondBande } };
+          cell.border = { bottom: { style: "thin", color: { argb: "FFE0E0E0" } } };
+        }
+
+        const celluleMontant = ligne.getCell(6);
+        celluleMontant.font = { color: { argb: estRetrait ? COL.rouge : COL.vert }, bold: true };
         celluleMontant.numFmt = "#,##0";
+        celluleMontant.alignment = { horizontal: "right" };
+
+        ligneIdx++;
       });
 
-      // Ligne vide puis ligne de totaux
-      feuille.addRow({});
-      const ligneTotalDepot = feuille.addRow({ client: "TOTAL DÉPÔTS", montant: totalDepot });
-      ligneTotalDepot.getCell("client").font = { bold: true };
-      ligneTotalDepot.getCell("montant").font = { bold: true, color: { argb: "FF4CAF50" } };
-      ligneTotalDepot.getCell("montant").numFmt = "#,##0";
+      feuille.autoFilter = { from: { row: 4, column: 1 }, to: { row: 4, column: 6 } };
 
-      const ligneTotalRetrait = feuille.addRow({ client: "TOTAL RETRAITS", montant: totalRetrait });
-      ligneTotalRetrait.getCell("client").font = { bold: true };
-      ligneTotalRetrait.getCell("montant").font = { bold: true, color: { argb: "FFF44336" } };
-      ligneTotalRetrait.getCell("montant").numFmt = "#,##0";
+      // Totaux (dépôts / retraits) — pas de "solde net", car des
+      // réapprovisionnements ont lieu entre-temps et ne sont pas comptés ici.
+      ligneIdx++;
+      const ligneTotalDepot = feuille.getRow(ligneIdx++);
+      ligneTotalDepot.getCell(2).value = "TOTAL DÉPÔTS";
+      ligneTotalDepot.getCell(6).value = totalDepot;
+      const ligneTotalRetrait = feuille.getRow(ligneIdx++);
+      ligneTotalRetrait.getCell(2).value = "TOTAL RETRAITS";
+      ligneTotalRetrait.getCell(6).value = totalRetrait;
 
-      const ligneSolde = feuille.addRow({ client: "SOLDE NET", montant: totalDepot - totalRetrait });
-      ligneSolde.getCell("client").font = { bold: true };
-      ligneSolde.getCell("montant").font = { bold: true };
-      ligneSolde.getCell("montant").numFmt = "#,##0";
-      ligneSolde.eachCell(cell => {
-        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1A1A1A" } };
+      [[ligneTotalDepot, COL.vert], [ligneTotalRetrait, COL.rouge]].forEach(([ligne, couleur]) => {
+        ligne.getCell(2).font = { bold: true };
+        ligne.getCell(6).font = { bold: true, color: { argb: couleur } };
+        ligne.getCell(6).numFmt = "#,##0";
+        ligne.getCell(6).alignment = { horizontal: "right" };
       });
-      ligneSolde.getCell("client").font = { bold: true, color: { argb: "FFFFFFFF" } };
-      ligneSolde.getCell("montant").font = { bold: true, color: { argb: "FFFFFFFF" } };
 
-      feuille.getColumn("montant").alignment = { horizontal: "right" };
-
-      // Nom de fichier : boutique + période filtrée si présente, sinon la date du jour
-      const f = dernierFiltreAffiche || {};
       let suffixe = new Date().toISOString().split("T")[0];
       if (f.date_debut || f.date_fin) {
         suffixe = `${f.date_debut || "debut"}_a_${f.date_fin || "aujourdhui"}`;
@@ -739,9 +790,35 @@
       }
       liste.innerHTML = "";
       const opsVus = new Set();
+      txs.forEach(t => { if (t.operateur) opsVus.add(t.operateur); });
+
+      // ── Regroupement par jour (Aujourd'hui / Hier / date) ──
+      const auj = new Date(); auj.setHours(0,0,0,0);
+      const hier = new Date(auj); hier.setDate(hier.getDate() - 1);
+      const cleJour = (d) => { const x = new Date(d); x.setHours(0,0,0,0); return x.getTime(); };
+      const libelleJour = (d) => {
+        const t = cleJour(d);
+        if (t === auj.getTime()) return "Aujourd'hui";
+        if (t === hier.getTime()) return "Hier";
+        return new Date(d).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric" });
+      };
+
+      const groupes = new Map(); // cleJour -> { libelle, items: [], depot, retrait }
       txs.forEach(t => {
+        const cle = cleJour(t.date_heure);
+        if (!groupes.has(cle)) {
+          groupes.set(cle, { libelle: libelleJour(t.date_heure), items: [], depot: 0, retrait: 0 });
+        }
+        const g = groupes.get(cle);
+        g.items.push(t);
+        if (t.type === "Retrait") g.retrait += Number(t.montant || 0);
+        else g.depot += Number(t.montant || 0);
+      });
+      // Les transactions arrivent déjà triées récent → ancien depuis l'API
+      const clesTriees = [...groupes.keys()].sort((a, b) => b - a);
+
+      const rendreTx = (t) => {
         const ret = t.type === "Retrait";
-        if (t.operateur) opsVus.add(t.operateur);
         const div = document.createElement("div");
         div.className = "tx";
         div.innerHTML = `
@@ -756,8 +833,46 @@
             <div class="tx-montant ${ret?"m-r":"m-d"}">${ret?"-":"+"}${fmt(t.montant)}</div>
             <div class="tx-heure">${fmtDate(t.date_heure)}</div>
           </div>`;
-        liste.appendChild(div);
-      });
+        return div;
+      };
+
+      const rendreGroupe = (cle) => {
+        const g = groupes.get(cle);
+        const bloc = document.createElement("div");
+        bloc.className = "jour-groupe";
+        const net = g.depot - g.retrait;
+        const netTxt = (net >= 0 ? "+" : "") + fmt(net) + " FCFA";
+        bloc.innerHTML = `
+          <div class="jour-entete">
+            <span class="jour-libelle">${g.libelle}</span>
+            <span class="jour-soustotal">Net : ${netTxt} · ${g.items.length} mvt${g.items.length>1?"s":""}</span>
+          </div>`;
+        g.items.forEach(t => bloc.appendChild(rendreTx(t)));
+        return bloc;
+      };
+
+      // Par défaut, on n'affiche que les 3 derniers jours qui ont des transactions
+      const NB_JOURS_INITIAL = 3;
+      let jourIdx = 0;
+      for (; jourIdx < Math.min(NB_JOURS_INITIAL, clesTriees.length); jourIdx++) {
+        liste.appendChild(rendreGroupe(clesTriees[jourIdx]));
+      }
+
+      if (clesTriees.length > NB_JOURS_INITIAL) {
+        const joursRestants = clesTriees.length - NB_JOURS_INITIAL;
+        const txRestantes = clesTriees.slice(NB_JOURS_INITIAL).reduce((s, c) => s + groupes.get(c).items.length, 0);
+        const btn = document.createElement("div");
+        btn.className = "btn-voir-plus";
+        btn.innerHTML = `Voir les jours précédents<small>${joursRestants} jour${joursRestants>1?"s":""} · ${txRestantes} transaction${txRestantes>1?"s":""}</small>`;
+        btn.onclick = () => {
+          for (; jourIdx < clesTriees.length; jourIdx++) {
+            liste.insertBefore(rendreGroupe(clesTriees[jourIdx]), btn);
+          }
+          btn.remove();
+        };
+        liste.appendChild(btn);
+      }
+
       if (opsVus.size > 0) {
         const ops = JSON.parse(localStorage.getItem("ops") || "[]");
         let ajoute = false;

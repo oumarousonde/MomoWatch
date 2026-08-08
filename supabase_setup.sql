@@ -31,12 +31,16 @@ create table if not exists transactions (
     id bigint generated always as identity primary key,
     boutique_id uuid references boutiques(id) on delete cascade,
     client text,
+    telephone_client text, -- numéro du client extrait du SMS, si disponible
     montant numeric,
     type text,        -- 'Retrait' ou 'Dépôt'
     operateur text,   -- 'Orange Money', 'Moov Money', 'Wave'...
     solde_apres numeric, -- solde après transaction si disponible
     date_heure timestamp with time zone default now()
 );
+
+-- Si la table existait déjà avant l'ajout du numéro de téléphone :
+alter table transactions add column if not exists telephone_client text;
 
 -- ── 4. TELEPHONES_BOUTIQUE (plusieurs puces par boutique) ────
 create table if not exists telephones_boutique (
