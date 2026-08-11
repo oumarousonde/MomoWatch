@@ -52,6 +52,18 @@ create table if not exists telephones_boutique (
     created_at timestamp with time zone default now()
 );
 
+-- Config Wave par boutique : chaque boutique qui active Wave a SON PROPRE
+-- compte Wave Business, donc SON PROPRE secret de webhook (Wave ne fournit
+-- pas un secret partagé pour tout le monde). L'URL du webhook enregistrée
+-- sur Wave inclut le boutique_id, ce qui permet de savoir quel secret
+-- utiliser pour vérifier la signature de chaque notification reçue.
+create table if not exists wave_config (
+    boutique_id uuid references boutiques(id) on delete cascade primary key,
+    secret_webhook text not null,
+    actif boolean default true,
+    created_at timestamp with time zone default now()
+);
+
 -- ── 5. INDEX pour performances ───────────────────────────────
 create index if not exists idx_transactions_boutique on transactions (boutique_id);
 create index if not exists idx_transactions_date on transactions (date_heure);
@@ -81,6 +93,8 @@ create or replace function activer_code(
 declare
     v_abonnement abonnements%rowtype;
     v_date_expiration timestamp with time zone;
+    v_date_depart timestamp with time zone;
+    v_expiration_en_cours timestamp with time zone;
 begin
     -- Chercher le code
     select * into v_abonnement
@@ -91,8 +105,21 @@ begin
         return json_build_object('succes', false, 'message', 'Code invalide ou déjà utilisé');
     end if;
 
-    -- Calculer la date d'expiration
-    v_date_expiration := now() + (v_abonnement.duree_jours || ' days')::interval;
+    -- Si cette boutique a déjà un abonnement actif ET pas encore expiré, les
+    -- jours restants s'ajoutent au lieu d'être perdus : on part de la date
+    -- d'expiration existante plutôt que de maintenant. Un renouvellement
+    -- anticipé ne doit jamais pénaliser le boutiquier par rapport à s'il
+    -- avait attendu la dernière minute.
+    select date_expiration into v_expiration_en_cours
+    from abonnements
+    where boutique_id = p_boutique_id
+      and statut = 'actif'
+      and date_expiration > now()
+    order by date_expiration desc
+    limit 1;
+
+    v_date_depart := coalesce(v_expiration_en_cours, now());
+    v_date_expiration := v_date_depart + (v_abonnement.duree_jours || ' days')::interval;
 
     -- Activer le code
     update abonnements set

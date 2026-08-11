@@ -18,6 +18,7 @@
     { "src": "/api/mois_disponibles", "dest": "/api/mois_disponibles.py" },
     { "src": "/api/statistiques", "dest": "/api/statistiques.py" },
     { "src": "/api/recuperer_acces", "dest": "/api/recuperer_acces.py" },
+    { "src": "/api/wave-webhook", "dest": "/api/wave.py" },
     { "src": "/", "dest": "/index.html" },
     { "src": "/dashboard", "dest": "/dashboard.html" },
     { "src": "/activation", "dest": "/activation.html" },

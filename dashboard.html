@@ -507,6 +507,7 @@
         ligne.getCell(2).value = t.client || "Inconnu";
         ligne.getCell(3).value = t.telephone_client || t.telephone || "—";
         ligne.getCell(4).value = t.operateur || "";
+        if (estRetrait) ligne.getCell(4).font = { color: { argb: COL.rouge } };
         ligne.getCell(5).value = (estRetrait ? "🔴 " : "🟢 ") + (t.type || "");
         ligne.getCell(6).value = Number(t.montant || 0);
 
@@ -826,7 +827,7 @@
             <div class="tx-ico ${ret?"ico-r":"ico-d"}">${ret?"📤":"📥"}</div>
             <div>
               <div class="tx-nom">${t.client||"Inconnu"}${(t.telephone_client||t.telephone) ? ` · ${t.telephone_client||t.telephone}` : ""}</div>
-              <div class="tx-info">${t.operateur||""} · ${t.type||""}</div>
+              <div class="tx-info${ret?" m-r":""}">${t.operateur||""} · ${t.type||""}</div>
             </div>
           </div>
           <div class="tx-d">
