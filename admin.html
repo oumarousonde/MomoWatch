@@ -64,6 +64,15 @@
   .tag.actif { background: rgba(76,175,80,0.15); color: var(--vert); }
   .tag.expire { background: rgba(244,67,54,0.15); color: var(--rouge); }
 
+  .onglet-code {
+    padding: 8px 16px; border-radius: 20px; border: 1px solid var(--gm);
+    background: var(--gf); color: var(--gt); font-size: 13px; font-weight: 600;
+    cursor: pointer;
+  }
+  .onglet-code.actif-onglet {
+    background: var(--orange); color: #1a1a1a; border-color: var(--orange);
+  }
+
   .table-scroll { overflow-x: auto; }
   .msg { margin-top: 10px; font-size: 13px; }
   .msg.erreur { color: var(--rouge); }
@@ -142,6 +151,7 @@
       <option value="365">12 mois</option>
     </select>
     <button class="principal" id="btn-generer" onclick="genererCode()">Générer</button>
+    <div style="color:var(--gt);font-size:11px;margin-top:6px;">♾️ Génération illimitée — aucune limite de codes</div>
     <div class="resultat-code" id="resultat-code"></div>
     <div id="bloc-whatsapp" style="display:none;margin-top:14px;">
       <div style="display:flex;gap:8px;margin-bottom:8px;">
@@ -162,6 +172,11 @@
 
   <div class="bloc">
     <h2>Tous les codes</h2>
+    <div id="onglets-codes" style="display:flex;gap:8px;margin-bottom:14px;">
+      <button class="onglet-code" data-filtre="en_cours">En cours</button>
+      <button class="onglet-code" data-filtre="expire">Expirés</button>
+      <button class="onglet-code" data-filtre="tous">Tous</button>
+    </div>
     <div class="table-scroll">
       <table>
         <thead>
@@ -230,7 +245,8 @@
       sessionStorage.setItem("admin_mdp", MOT_DE_PASSE);
       document.getElementById("ecran-connexion").style.display = "none";
       document.getElementById("ecran-admin").style.display = "block";
-      afficherCodes(d.codes);
+      tousLesCodes = d.codes;
+      filtrerCodes("en_cours");
       chargerVueEnsemble();
     } catch (e) {
       document.getElementById("msg-connexion").textContent = "Erreur de connexion";
@@ -241,6 +257,32 @@
     if (!d) return "—";
     return new Date(d).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric" });
   }
+
+  let tousLesCodes = [];
+  let filtreActuel = "en_cours";
+
+  function statutReel(c) {
+    // Même logique que dans afficherCodes() pour rester cohérent : un code
+    // "actif" en base peut être en réalité expiré si sa date est dépassée.
+    if (c.statut !== "actif") return "disponible";
+    const expire = c.date_expiration ? new Date(c.date_expiration) : null;
+    return (expire && expire < new Date()) ? "expire" : "en_cours";
+  }
+
+  function filtrerCodes(filtre) {
+    filtreActuel = filtre;
+    document.querySelectorAll(".onglet-code").forEach(btn => {
+      btn.classList.toggle("actif-onglet", btn.dataset.filtre === filtre);
+    });
+    const sousEnsemble = filtre === "tous"
+      ? tousLesCodes
+      : tousLesCodes.filter(c => statutReel(c) === filtre);
+    afficherCodes(sousEnsemble);
+  }
+
+  document.querySelectorAll(".onglet-code").forEach(btn => {
+    btn.addEventListener("click", () => filtrerCodes(btn.dataset.filtre));
+  });
 
   function dureeLabel(j) {
     if (j === 30) return "1 mois";
@@ -362,7 +404,10 @@
   async function rafraichirListe() {
     const r = await fetch(`/api/admin_liste?mot_de_passe=${encodeURIComponent(MOT_DE_PASSE)}`);
     const d = await r.json();
-    if (d.succes) afficherCodes(d.codes);
+    if (d.succes) {
+      tousLesCodes = d.codes;
+      filtrerCodes(filtreActuel);
+    }
     chargerVueEnsemble();
   }
 
