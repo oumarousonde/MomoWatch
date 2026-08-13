@@ -12,6 +12,9 @@ class handler(BaseHTTPRequestHandler):
             n = int(self.headers.get("Content-Length", 0))
             data = json.loads(self.rfile.read(n).decode())
 
+            # ✅ LOG : affiche les données reçues dans les logs Vercel
+            print("[MomoWatch] Données reçues :", json.dumps(data))
+
             boutique_id = data.get("boutique_id")
             if not boutique_id:
                 self._rep(400, {
@@ -34,7 +37,7 @@ class handler(BaseHTTPRequestHandler):
             supabase.table("transactions").insert({
                 "boutique_id": boutique_id,
                 "client":      data.get("client", "Inconnu"),
-                "telephone_client": data.get("telephone_client") or data.get("telephone") or None,
+                "telephone_client": data.get("telephone") or None,
                 "montant":     float(str(data.get("montant", 0)).replace(" ", "")),
                 "type":        data.get("type", ""),
                 "operateur":   data.get("operateur", ""),
