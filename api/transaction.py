@@ -1,7 +1,6 @@
 import os, json
 from http.server import BaseHTTPRequestHandler
 from supabase import create_client
-from datetime import datetime, timedelta
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
@@ -25,6 +24,7 @@ class handler(BaseHTTPRequestHandler):
 
             supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
+            # Vérifier que l'abonnement de la boutique est actif
             actif = supabase.rpc("abonnement_actif", {
                 "p_boutique_id": boutique_id
             }).execute().data
@@ -33,21 +33,33 @@ class handler(BaseHTTPRequestHandler):
                 self._rep(403, {"statut": "erreur", "message": "Abonnement inactif ou expiré"})
                 return
 
-            # ✅ ANTI-DOUBLON PAR BASE DE DONNÉES (24h)
-            verif = supabase.table("transactions").select("id")\
-                .eq("client", data.get("client", "Inconnu"))\
-                .eq("montant", float(str(data.get("montant", 0)).replace(" ", "")))\
-                .eq("type", data.get("type", ""))\
-                .eq("operateur", data.get("operateur", ""))\
-                .gte("date_heure", (datetime.now() - timedelta(days=1)).isoformat())\
-                .execute()
+            # ============================================================
+            # ANTI-DOUBLON FIABLE : par ID de transaction (extrait du SMS)
+            # ============================================================
+            # L'ancien anti-doublon (client + montant + type + opérateur sur
+            # 24h) est SUPPRIMÉ car il rejetait de VRAIES transactions :
+            # un client qui retire 2 fois 5 000 FCFA le même jour, ou deux
+            # clients homonymes, étaient ignorés à tort.
+            #
+            # Le nouvel anti-doublon se base sur l'identifiant unique présent
+            # dans chaque SMS Orange Money / Moov Money ("Trans ID" / "tid").
+            # Deux transactions légitimes n'ont JAMAIS le même ID.
+            # ============================================================
+            transaction_id = data.get("transaction_id")
+            if transaction_id:
+                verif = supabase.table("transactions").select("id")\
+                    .eq("transaction_id", transaction_id)\
+                    .execute()
+                if verif.data:
+                    print("[MomoWatch] Doublon confirmé (ID=" + str(transaction_id) + ") -> transaction déjà enregistrée, ignorée.")
+                    # Code 200 : l'app Android retire ce SMS de sa file d'attente,
+                    # tout est cohérent des deux côtés.
+                    self._rep(200, {"statut": "doublon ignore"})
+                    return
 
-            if verif.data:
-                print("[MomoWatch] ⚠️ Doublon détecté (24h) → transaction ignorée.")
-                self._rep(200, {"statut": "doublon ignore"})
-                return
-
+            # ============================================================
             # Insertion normale
+            # ============================================================
             supabase.table("transactions").insert({
                 "boutique_id": boutique_id,
                 "client":      data.get("client", "Inconnu"),
@@ -55,12 +67,16 @@ class handler(BaseHTTPRequestHandler):
                 "montant":     float(str(data.get("montant", 0)).replace(" ", "")),
                 "type":        data.get("type", ""),
                 "operateur":   data.get("operateur", ""),
-                "solde_apres": data.get("solde_apres")
+                "solde_apres": data.get("solde_apres"),
+                "transaction_id": transaction_id  # peut être None (anciens formats), c'est OK
             }).execute()
 
+            print("[MomoWatch] Transaction enregistrée avec succès (ID=" + str(transaction_id) + ")")
             self._rep(200, {"statut": "ok"})
 
         except Exception as e:
+            import traceback
+            traceback.print_exc()  # visible dans les logs Vercel pour le debug
             self._rep(500, {"statut": "erreur", "message": str(e)})
 
     def do_GET(self):
