@@ -19,10 +19,13 @@ class handler(BaseHTTPRequestHandler):
             supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
             supabase.table("boutiques").update({
                 "dernier_ping": datetime.now(timezone.utc).isoformat(),
-                "file_attente": int(data.get("file_attente", 0))
-                        }).eq("boutique_id", boutique_id).execute()
+                "file_attente": int(data.get("file_attente", 0)),
+                "batterie": data.get("batterie"),
+                "mode_avion": bool(data.get("mode_avion", False)),
+                "sim_changee": bool(data.get("sim_changee", False))
+            }).eq("id", boutique_id).execute()
 
-            print("[MomoWatch] 💓 Ping reçu de la boutique " + str(boutique_id))
+            print("[MomoWatch] 💓 Ping reçu de " + str(boutique_id))
             self._rep(200, {"statut": "ok"})
         except Exception as e:
             import traceback
