@@ -20,7 +20,7 @@ class handler(BaseHTTPRequestHandler):
             supabase.table("boutiques").update({
                 "dernier_ping": datetime.now(timezone.utc).isoformat(),
                 "file_attente": int(data.get("file_attente", 0))
-            }).eq("id", boutique_id).execute()
+                        }).eq("boutique_id", boutique_id).execute()
 
             print("[MomoWatch] 💓 Ping reçu de la boutique " + str(boutique_id))
             self._rep(200, {"statut": "ok"})
