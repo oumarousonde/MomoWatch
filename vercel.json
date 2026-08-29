@@ -8,6 +8,7 @@
   ],
   "routes": [
     { "src": "/api/transaction", "dest": "/api/transaction.py" },
+    { "src": "/api/ping", "dest": "/api/ping.py" },
     { "src": "/api/summary", "dest": "/api/summary.py" },
     { "src": "/api/activer", "dest": "/api/activer.py" },
     { "src": "/api/verifier", "dest": "/api/verifier.py" },
@@ -22,6 +23,7 @@
     { "src": "/", "dest": "/index.html" },
     { "src": "/dashboard", "dest": "/dashboard.html" },
     { "src": "/activation", "dest": "/activation.html" },
+    { "src": "/api/statut_boutiques", "dest": "/api/statut_boutiques.py" },
     { "src": "/admin", "dest": "/admin.html" },
     { "src": "/(.*)", "dest": "/$1" }
   ]
