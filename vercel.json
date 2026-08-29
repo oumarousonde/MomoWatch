@@ -23,7 +23,6 @@
     { "src": "/", "dest": "/index.html" },
     { "src": "/dashboard", "dest": "/dashboard.html" },
     { "src": "/activation", "dest": "/activation.html" },
-    { "src": "/api/statut_boutiques", "dest": "/api/statut_boutiques.py" },
     { "src": "/admin", "dest": "/admin.html" },
     { "src": "/(.*)", "dest": "/$1" }
   ]
