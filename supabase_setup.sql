@@ -11,8 +11,21 @@ create table if not exists boutiques (
     telephone text,
     ville text,
     created_at timestamp with time zone default now(),
-    actif boolean default true
+    actif boolean default true,
+    -- Champs alimentés par ping.py (BattementCoeurWorker côté Android)
+    dernier_ping timestamp with time zone,
+    file_attente integer,
+    batterie integer,
+    mode_avion boolean default false,
+    sim_changee boolean default false
 );
+
+-- Si la table existait déjà avant l'ajout du ping :
+alter table boutiques add column if not exists dernier_ping timestamp with time zone;
+alter table boutiques add column if not exists file_attente integer;
+alter table boutiques add column if not exists batterie integer;
+alter table boutiques add column if not exists mode_avion boolean default false;
+alter table boutiques add column if not exists sim_changee boolean default false;
 
 -- ── 2. ABONNEMENTS (codes d'activation) ─────────────────────
 create table if not exists abonnements (
@@ -33,11 +46,17 @@ create table if not exists transactions (
     client text,
     telephone_client text, -- numéro du client extrait du SMS, si disponible
     montant numeric,
-    type text,        -- 'Retrait' ou 'Dépôt'
+    type text,        -- 'Retrait' ou 'Dépôt' (ou 'Service' pour les unités/factures)
     operateur text,   -- 'Orange Money', 'Moov Money', 'Wave'...
     solde_apres numeric, -- solde après transaction si disponible
+    categorie text default 'caisse', -- 'caisse' (client) ou 'service' (unités/factures)
+    type_service text, -- 'unites', 'facture_sonabel', 'facture_onea' — null si categorie = 'caisse'
     date_heure timestamp with time zone default now()
 );
+
+-- Si la table existait déjà avant l'ajout des Services :
+alter table transactions add column if not exists categorie text default 'caisse';
+alter table transactions add column if not exists type_service text;
 
 -- Si la table existait déjà avant l'ajout du numéro de téléphone :
 alter table transactions add column if not exists telephone_client text;
@@ -182,3 +201,40 @@ on conflict (code) do nothing;
 -- dashboard, afin qu'une personne non autorisée ne puisse pas fouiller dans
 -- les transactions d'une boutique juste en ayant accès au téléphone.
 alter table boutiques add column if not exists mot_de_passe text;
+
+-- ── AJOUT : alertes "SMS supprimé" (bannière rouge du DG) ────────
+-- Le téléphone détecte qu'un SMS de dépôt/retrait a été supprimé et le
+-- signale ici. Le DG le voit sur son dashboard jusqu'à "J'ai vu".
+create table if not exists alertes_suppression (
+    id bigint generated always as identity primary key,
+    boutique_id uuid references boutiques(id) on delete cascade,
+    transaction_id text,
+    type text,
+    montant numeric,
+    operateur text,
+    date_sms timestamp with time zone,
+    vue boolean default false,
+    created_at timestamp with time zone default now()
+);
+create index if not exists idx_alertes_boutique on alertes_suppression (boutique_id, vue);
+alter table alertes_suppression enable row level security;
+create policy "service_role_alertes" on alertes_suppression for all using (true);
+
+-- ── AJOUT : notifications push du DG (téléphones abonnés) ────────
+create table if not exists push_abonnements (
+    id bigint generated always as identity primary key,
+    boutique_id uuid references boutiques(id) on delete cascade,
+    endpoint text unique not null,
+    p256dh text not null,
+    auth text not null,
+    created_at timestamp with time zone default now()
+);
+create index if not exists idx_push_boutique on push_abonnements (boutique_id);
+alter table push_abonnements enable row level security;
+create policy "service_role_push" on push_abonnements for all using (true);
+
+-- ── AJOUT : préférences de notifications du DG + état des alertes ────────
+-- notif_prefs : ce que le DG veut recevoir (chaque transaction, gros montant, batterie...)
+-- notif_etat  : mémoire du serveur pour ne pas répéter la même alerte en boucle
+alter table boutiques add column if not exists notif_prefs jsonb default '{}'::jsonb;
+alter table boutiques add column if not exists notif_etat jsonb default '{}'::jsonb;
