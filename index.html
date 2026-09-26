@@ -210,7 +210,10 @@
     <img src="/logo-symbole.png" alt="MomoWatch">
     <div class="nav-titre">Momo<span>Watch</span></div>
   </div>
-  <a href="dashboard.html">Tableau de bord</a>
+  <div style="display:flex;align-items:center;gap:20px;">
+    <a href="#confidentialite" style="background:transparent;color:var(--gt);padding:0;font-weight:600;font-size:13px;">Confidentialité</a>
+    <a href="dashboard.html">Tableau de bord</a>
+  </div>
 </nav>
 
 <section class="hero">
@@ -218,8 +221,11 @@
   <h1>Votre boutique sous <span>surveillance</span>, où que vous soyez.</h1>
   <p>MomoWatch lit automatiquement les SMS de transaction de votre puce Mobile Money et les envoie dans votre tableau de bord en temps réel — sans intermédiaire humain.</p>
   <div class="hero-btns">
-    <a href="dashboard.html" class="btn-p">Accéder au tableau de bord →</a>
-    <a href="#comment" class="btn-s">Comment ça marche</a>
+    <a href="activation.html?essai=1" class="btn-p">Essayer gratuitement 7 jours →</a>
+    <a href="dashboard.html" class="btn-s">J'ai déjà une boutique</a>
+  </div>
+  <div style="margin-top:14px;">
+    <a href="#comment" style="color:var(--gt);font-size:13px;text-decoration:underline;">Comment ça marche</a>
   </div>
 </section>
 
@@ -335,6 +341,40 @@
   </div>
 </div>
 
+<div class="section" id="confidentialite">
+  <div class="section-label">Confidentialité</div>
+  <h2>Ce que MomoWatch lit, envoie et garde.</h2>
+  <div style="max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:20px;color:var(--gt);font-size:14.5px;line-height:1.7;">
+    <div>
+      <strong style="color:var(--blanc);">Ce que l'app lit sur le téléphone.</strong>
+      Android nous demande la permission de lire tous les SMS, mais MomoWatch ne traite que les messages
+      de transaction Orange Money et Moov Money (dépôt, retrait). Tout le reste — messages personnels,
+      codes de vérification, publicités — est ignoré et ne quitte jamais le téléphone.
+    </div>
+    <div>
+      <strong style="color:var(--blanc);">Ce qui est envoyé à nos serveurs.</strong>
+      Pour chaque transaction reconnue : le montant, le type (dépôt/retrait), l'opérateur, le nom et le
+      numéro du client, et l'identifiant de la transaction. Le texte brut du SMS n'est jamais transmis.
+      On envoie aussi l'état du téléphone (batterie, connexion) pour te prévenir s'il tombe en panne.
+    </div>
+    <div>
+      <strong style="color:var(--blanc);">Où c'est gardé.</strong>
+      Les données sont stockées sur Supabase, une base de données sécurisée, séparée pour chaque boutique :
+      une boutique ne peut jamais voir les transactions d'une autre. Les mots de passe sont chiffrés,
+      jamais stockés en clair.
+    </div>
+    <div>
+      <strong style="color:var(--blanc);">Ce qu'on n'en fait pas.</strong>
+      Aucune donnée n'est vendue ni partagée avec un tiers, et rien n'est utilisé à des fins publicitaires.
+      Les notifications ne partent que vers les appareils que toi-même as autorisés.
+    </div>
+    <div>
+      <strong style="color:var(--blanc);">Une question ?</strong>
+      Écris-nous sur WhatsApp (lien en bas de page) — on répond directement, sans formulaire.
+    </div>
+  </div>
+</div>
+
 <footer>
   <div class="footer-logo">
     <img src="/logo-symbole.png" alt="MomoWatch">
@@ -342,7 +382,7 @@
   </div>
   <p>Gardez un œil sur votre boutique, où que vous soyez.<br>© 2026 MomoWatch. Tous droits réservés.</p>
   <div style="margin-top:20px;">
-    <a href="https://wa.me/22675318351" target="_blank"
+    <a href="https://wa.me/22671607287" target="_blank"
        style="display:inline-flex;align-items:center;gap:8px;background:#25D366;color:#fff;
               padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px;">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
