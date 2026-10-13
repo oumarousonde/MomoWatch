@@ -202,6 +202,11 @@
       <button id="gateBtnValider"
               style="width:100%;padding:10px;border:none;border-radius:8px;background:#FF7900;
                      color:#fff;font-weight:700;cursor:pointer;">Entrer</button>
+      <div style="text-align:center;margin-top:16px;">
+        <span id="gateLienDeconnexion" style="color:#9A9A9A;font-size:13px;text-decoration:underline;cursor:pointer;">
+          Ce n'est pas ta boutique ? Se déconnecter
+        </span>
+      </div>
     </div>
 
     <div id="gateEtapeDefinir" style="display:none;">
@@ -430,7 +435,6 @@
 
       <div id="prefsNotifs" style="display:none;margin-top:14px;border-top:1px solid #2A2A2A;padding-top:12px;">
         <div style="font-size:12px;color:#9A9A9A;margin-bottom:6px;">Alertes à recevoir :</div>
-        <label class="pn-l"><input type="checkbox" id="pn-suppression"> 🗑️ Message supprimé</label>
         <label class="pn-l"><input type="checkbox" id="pn-transactions"> 📥 📤 Chaque dépôt et retrait</label>
         <label class="pn-l"><input type="checkbox" id="pn-gros_montant"> 💰 Gros dépôt / retrait à partir de</label>
         <div style="display:flex;align-items:center;gap:8px;margin:0 0 6px 26px;">
@@ -450,6 +454,34 @@
          border:1px solid #FF7900;border-radius:8px;color:#FF7900;text-decoration:none;font-weight:700;">
         Voir / renouveler l'abonnement
       </a>
+    </div>
+
+    <div id="zoneChangerBoutique" style="display:none;margin-bottom:10px;">
+      <button id="btnChangerBoutique" style="width:100%;padding:10px;border:1px solid #FF7900;
+              border-radius:8px;background:transparent;color:#FF7900;font-weight:700;cursor:pointer;">
+        🔀 Changer de boutique (même compte)
+      </button>
+    </div>
+
+    <div style="margin-bottom:18px;border-top:1px solid #2A2A2A;padding-top:14px;">
+      <div style="font-size:13px;font-weight:700;color:var(--orange);margin-bottom:6px;">🏬 Compte multi-boutique</div>
+      <div style="font-size:12px;color:#9A9A9A;margin-bottom:8px;">
+        Lie cette boutique à un compte pour toutes les retrouver en une seule connexion.
+      </div>
+      <label style="font-size:12px;color:#9A9A9A;">Téléphone du compte</label>
+      <input type="tel" id="dgLien-telephone" placeholder="Ex : 0700000000"
+             style="width:100%;background:#111;border:1px solid #333;border-radius:8px;padding:9px 10px;
+                    color:#fff;font-size:13px;margin:4px 0 8px;box-sizing:border-box;">
+      <label style="font-size:12px;color:#9A9A9A;">Mot de passe du compte</label>
+      <input type="password" id="dgLien-mdp" placeholder="••••••••"
+             style="width:100%;background:#111;border:1px solid #333;border-radius:8px;padding:9px 10px;
+                    color:#fff;font-size:13px;margin:4px 0 8px;box-sizing:border-box;">
+      <div style="font-size:11px;color:#666;margin-bottom:8px;">
+        Compte inexistant ? Il sera créé avec ce téléphone et ce mot de passe.
+      </div>
+      <button id="btnLierDG" style="width:100%;padding:10px;border:none;border-radius:8px;
+              background:#FF7900;color:#fff;font-weight:700;cursor:pointer;">Lier cette boutique</button>
+      <div id="dgLienMsg" style="font-size:12px;margin-top:6px;min-height:16px;"></div>
     </div>
 
     <button id="btnDeconnexion" style="width:100%;padding:10px;border:1px solid #F44336;
@@ -799,6 +831,45 @@
     });
   }
 
+  if (localStorage.getItem("dg_telephone")) {
+    document.getElementById("zoneChangerBoutique").style.display = "block";
+  }
+  document.getElementById("btnChangerBoutique")?.addEventListener("click", () => {
+    window.location.href = "activation.html?dg=1";
+  });
+
+  document.getElementById("btnLierDG").addEventListener("click", async () => {
+    const tel = document.getElementById("dgLien-telephone").value.trim();
+    const mdp = document.getElementById("dgLien-mdp").value;
+    const msg = document.getElementById("dgLienMsg");
+    const mdpBoutique = motDePasseSession();
+    if (!tel || !mdp) { msg.style.color = "#F44336"; msg.textContent = "Téléphone et mot de passe obligatoires"; return; }
+    if (!mdpBoutique) {
+      msg.style.color = "#F44336";
+      msg.textContent = "❌ Reconnecte-toi une fois avec le mot de passe de cette boutique, puis reviens ici.";
+      return;
+    }
+    msg.style.color = "#9A9A9A"; msg.textContent = "Connexion...";
+    try {
+      const r = await fetch("/api/compte_boutique", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "dg_lier_boutique", boutique_id: BOUTIQUE_ID,
+          mot_de_passe_boutique: mdpBoutique, dg_telephone: tel, dg_mot_de_passe: mdp
+        })
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.message || "Liaison refusée");
+      localStorage.setItem("dg_telephone", tel);
+      sessionStorage.setItem("dg_mot_de_passe", mdp);
+      document.getElementById("zoneChangerBoutique").style.display = "block";
+      msg.style.color = "#4CAF50";
+      msg.textContent = `✅ Liée — ${d.boutiques.length} boutique(s) sur ce compte.`;
+    } catch (e) {
+      msg.style.color = "#F44336"; msg.textContent = "❌ " + (e.message || e);
+    }
+  });
+
   document.getElementById("btnDeconnexion").addEventListener("click", () => {
     if (!confirm("Déconnecter cet appareil de la boutique ? Il faudra un code d'activation pour reconfigurer.")) return;
     localStorage.removeItem("boutique_id");
@@ -806,7 +877,9 @@
     localStorage.removeItem("nom_dg");
     localStorage.removeItem("telephone");
     localStorage.removeItem("ville");
+    localStorage.removeItem("dg_telephone");
     sessionStorage.removeItem("dashboard_mdp_" + BOUTIQUE_ID);
+    sessionStorage.removeItem("dg_mot_de_passe");
     window.location.href = "activation.html";
   });
 
@@ -1006,7 +1079,7 @@
     }
   }
 
-  // ── Notifications push (alerte "message supprimé" sur le téléphone du DG) ──
+  // ── Notifications push (alertes sur le téléphone du DG) ──
   const VAPID_PUBLIC = "BCGTuJ79CbE3aZ3PKekYh2oRvuwfJWvnglUqrmNE2Ag8F3K2oo9I49ZZWl2YcUVmjsAaydrwe78tFMUp0QkqkLI";
 
   function cleVersUint8(b64) {
@@ -1050,13 +1123,13 @@
       zonePrefs.style.display = "block";
       btn.textContent = "Désactiver les notifications";
     } else {
-      etat.textContent = "Reçois sur ce téléphone les alertes de ta boutique : dépôts et retraits, message supprimé, batterie faible, téléphone sans signal.";
+      etat.textContent = "Reçois sur ce téléphone les alertes de ta boutique : dépôts et retraits, batterie faible, téléphone sans signal.";
       btn.textContent = "Activer les notifications";
     }
     if (messageErreur) etat.textContent = messageErreur;
   }
 
-  const CLES_PREFS = ["suppression", "transactions", "gros_montant", "batterie", "sans_signal"];
+  const CLES_PREFS = ["transactions", "gros_montant", "batterie", "sans_signal"];
   function afficherPrefsNotifs() {
     const p = window.__prefsNotifs;
     if (!p) return;
@@ -1125,7 +1198,7 @@
     majEtatNotifs(erreur);
   });
 
-  // ── Alerte "SMS supprimé" + statut du téléphone de la boutique ──
+  // ── Alerte "SIM changée" + statut du téléphone de la boutique ──
   function ligneDuree(minutes) {
     if (minutes < 60) return minutes + " min";
     const h = Math.floor(minutes / 60), m = minutes % 60;
@@ -1133,26 +1206,15 @@
     return Math.floor(h / 24) + " j";
   }
 
-  function afficherBandeau(alertes, simChangee) {
+  function afficherBandeau(simChangee) {
     const zone = document.getElementById("bandeauSuppression");
     const liste = document.getElementById("baListe");
     liste.textContent = "";
-    if (!alertes.length && !simChangee) { zone.style.display = "none"; return; }
-    alertes.forEach(a => {
-      const l = document.createElement("div");
-      l.className = "ba-ligne";
-      const quand = a.date_sms
-        ? new Date(a.date_sms).toLocaleString("fr-FR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })
-        : "date inconnue";
-      l.textContent = `🗑️ Message supprimé : ${a.type || "Transaction"} de ${fmt(a.montant)} · ${a.operateur || ""} · reçu le ${quand}`;
-      liste.appendChild(l);
-    });
-    if (simChangee) {
-      const l = document.createElement("div");
-      l.className = "ba-ligne";
-      l.textContent = "📵 La carte SIM du téléphone a été changée";
-      liste.appendChild(l);
-    }
+    if (!simChangee) { zone.style.display = "none"; return; }
+    const l = document.createElement("div");
+    l.className = "ba-ligne";
+    l.textContent = "📵 La carte SIM du téléphone a été changée";
+    liste.appendChild(l);
     zone.style.display = "block";
   }
 
@@ -1188,7 +1250,7 @@
       const r = await fetch(`/api/alertes?boutique_id=${BOUTIQUE_ID}`);
       if (!r.ok) return;
       const d = await r.json();
-      afficherBandeau(d.alertes || [], !!(d.telephone && d.telephone.sim_changee));
+      afficherBandeau(!!(d.telephone && d.telephone.sim_changee));
       if (d.notif_prefs) window.__prefsNotifs = d.notif_prefs;
       afficherStatutTel(d.telephone || {});
     } catch (e) { /* pas de réseau : on garde l'affichage précédent */ }
@@ -1409,6 +1471,21 @@
         }
       });
     }
+
+    document.getElementById("gateLienDeconnexion").addEventListener("click", () => {
+      // Même nettoyage que le bouton "Déconnexion / changer de boutique" des
+      // Paramètres — mais accessible ici, AVANT de connaître le mot de passe,
+      // pour ne pas rester bloqué sur la boutique mémorisée sur cet appareil.
+      sessionStorage.removeItem(cleSession);
+      sessionStorage.removeItem("dg_mot_de_passe");
+      localStorage.removeItem("boutique_id");
+      localStorage.removeItem("nom_boutique");
+      localStorage.removeItem("nom_dg");
+      localStorage.removeItem("telephone");
+      localStorage.removeItem("ville");
+      localStorage.removeItem("dg_telephone");
+      window.location.href = "activation.html";
+    });
 
     document.getElementById("gateBtnValider").addEventListener("click", async () => {
       const mdp = mdpInput.value;
