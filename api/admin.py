@@ -1,4 +1,4 @@
-import os, json, random, string
+import os, json, secrets, string
 from http.server import BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
 from datetime import datetime, timezone, timedelta
@@ -52,7 +52,9 @@ class handler(BaseHTTPRequestHandler):
             supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
             for _ in range(5):
-                suffixe = "".join(random.choices(string.ascii_uppercase + string.digits, k=4))
+                # 7 caractères aléatoires (au lieu de 4) : rend le devinage du code
+                # pratiquement impossible, même sans la limite de tentatives par IP.
+                suffixe = "".join(secrets.choice(string.ascii_uppercase + string.digits) for _ in range(7))
                 code = f"MOMO-{DUREES[duree_jours]}-{suffixe}"
                 existe = supabase.table("abonnements").select("id").eq("code", code).execute().data
                 if not existe:

@@ -15,7 +15,6 @@ CRON_SECRET = os.environ.get("CRON_SECRET", "")
 
 # Réglages par défaut des notifications du DG (modifiables dans ⚙️ Paramètres)
 PREFS_DEFAUT = {
-    "suppression": True,    # message supprimé sur le téléphone
     "transactions": True,   # chaque dépôt / retrait
     "gros_montant": True,   # dépôt / retrait au-dessus du seuil
     "seuil": 100000,        # FCFA
@@ -191,8 +190,6 @@ class handler(BaseHTTPRequestHandler):
             self._transaction(data)
         elif chemin.endswith("/ping"):
             self._ping(data)
-        elif chemin.endswith("/alerte-suppression"):
-            self._alerte_suppression(data)
         elif chemin.endswith("/alertes_vues"):
             self._alertes_vues(data)
         elif chemin.endswith("/push_abonner"):
@@ -308,64 +305,6 @@ class handler(BaseHTTPRequestHandler):
 
             self._rep(200, {"statut": "ok"})
         except Exception as e:
-            self._rep(500, {"statut": "erreur", "message": str(e)})
-
-    # ---------- alerte-suppression : un SMS de transaction a été supprimé ----------
-    # Envoyé par le téléphone (SurveillanceSuppressionWorker). Le DG le voit
-    # en bannière rouge sur son dashboard jusqu'à ce qu'il clique "J'ai vu".
-    def _alerte_suppression(self, data):
-        try:
-            boutique_id = data.get("boutique_id")
-            if not boutique_id:
-                self._rep(400, {"statut": "erreur", "message": "boutique_id manquant"})
-                return
-
-            transaction_id = data.get("transaction_id") or None
-            date_sms = None
-            try:
-                if data.get("date_sms"):
-                    date_sms = datetime.fromtimestamp(
-                        int(data["date_sms"]) / 1000, tz=timezone.utc).isoformat()
-            except Exception:
-                date_sms = None
-
-            supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
-
-            # Anti-doublon : le téléphone réessaie tant qu'il n'a pas de réponse ok
-            q = supabase.table("alertes_suppression").select("id").eq("boutique_id", boutique_id)
-            if transaction_id:
-                q = q.eq("transaction_id", transaction_id)
-            elif date_sms:
-                q = q.eq("date_sms", date_sms)
-            if (transaction_id or date_sms) and q.execute().data:
-                self._rep(200, {"statut": "ok", "message": "déjà enregistrée"})
-                return
-
-            supabase.table("alertes_suppression").insert({
-                "boutique_id": boutique_id,
-                "transaction_id": transaction_id,
-                "type": data.get("type", ""),
-                "montant": float(data.get("montant") or 0),
-                "operateur": data.get("operateur", ""),
-                "date_sms": date_sms
-            }).execute()
-            log("🚨 SMS supprimé signalé par " + str(boutique_id))
-
-            # Notification sur le téléphone du DG (ne bloque jamais la réponse)
-            try:
-                nom, prefs, _ = lire_boutique_notifs(supabase, boutique_id)
-                if prefs.get("suppression", True):
-                    corps = (f"{data.get('type') or 'Transaction'} de {fmt_fcfa(data.get('montant') or 0)} "
-                             f"({data.get('operateur') or 'opérateur inconnu'}) supprimé")
-                    if nom:
-                        corps += " — " + nom
-                    envoyer_push(supabase, boutique_id, "🚨 Message supprimé", corps)
-            except Exception as e:
-                log("⚠️ notification non envoyée : " + str(e))
-
-            self._rep(200, {"statut": "ok"})
-        except Exception as e:
-            log("❌ ERREUR alerte-suppression : " + str(e))
             self._rep(500, {"statut": "erreur", "message": str(e)})
 
     # ---------- notification : chaque dépôt / retrait (et gros montants) ----------
@@ -487,7 +426,7 @@ class handler(BaseHTTPRequestHandler):
             if data.get("action") == "preferences" and boutique_id:
                 brut = data.get("prefs") or {}
                 prefs = {}
-                for cle in ("suppression", "transactions", "gros_montant", "batterie", "sans_signal"):
+                for cle in ("transactions", "gros_montant", "batterie", "sans_signal"):
                     prefs[cle] = bool(brut.get(cle, PREFS_DEFAUT[cle]))
                 try:
                     prefs["seuil"] = max(0, int(float(brut.get("seuil", PREFS_DEFAUT["seuil"]))))
@@ -545,11 +484,6 @@ class handler(BaseHTTPRequestHandler):
 
             supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-            alertes = supabase.table("alertes_suppression") \
-                .select("id,transaction_id,type,montant,operateur,date_sms,created_at") \
-                .eq("boutique_id", boutique_id).eq("vue", False) \
-                .order("created_at", desc=True).limit(50).execute().data
-
             tel = supabase.table("boutiques") \
                 .select("dernier_ping,batterie,file_attente,mode_avion,sim_changee") \
                 .eq("id", boutique_id).execute().data
@@ -559,7 +493,7 @@ class handler(BaseHTTPRequestHandler):
                 telephone["batterie"] = None
 
             _, prefs, _ = lire_boutique_notifs(supabase, boutique_id)
-            self._rep(200, {"alertes": alertes, "telephone": telephone, "notif_prefs": prefs})
+            self._rep(200, {"telephone": telephone, "notif_prefs": prefs})
         except Exception as e:
             self._rep(500, {"statut": "erreur", "message": str(e)})
 
@@ -570,13 +504,7 @@ class handler(BaseHTTPRequestHandler):
                 self._rep(400, {"statut": "erreur", "message": "boutique_id manquant"})
                 return
             supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
-            q = supabase.table("alertes_suppression").update({"vue": True}) \
-                .eq("boutique_id", boutique_id).eq("vue", False)
-            ids = data.get("ids")
-            if isinstance(ids, list) and ids:
-                q = q.in_("id", ids)
-            q.execute()
-            # Le DG a pris connaissance : on efface aussi l'alerte "SIM changée"
+            # Le DG a pris connaissance : on efface l'alerte "SIM changée"
             supabase.table("boutiques").update({"sim_changee": False}).eq("id", boutique_id).execute()
             self._rep(200, {"statut": "ok"})
         except Exception as e:
