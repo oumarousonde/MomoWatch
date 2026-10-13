@@ -297,6 +297,12 @@
   const SEUIL_ALERTE_JOURS = 5;
 
   async function verifierStatutEtRediriger() {
+    // ✅ CORRECTION : si on arrive ici via "Changer de boutique" (?dg=1),
+    // on ne redirige jamais automatiquement vers le dashboard de la boutique
+    // déjà activée — sinon l'écran "Mes boutiques" ne s'affiche jamais, on
+    // est aussitôt renvoyé vers l'ancienne boutique.
+    if (new URLSearchParams(window.location.search).get("dg") === "1") return;
+
     const boutiqueId = localStorage.getItem("boutique_id");
     if (!boutiqueId) return; // pas encore activé, on affiche le formulaire normal
 
