@@ -338,12 +338,19 @@
         <td style="font-family:monospace;font-size:11px;cursor:pointer;"
             title="Cliquer pour copier"
             onclick="navigator.clipboard.writeText('${c.boutique_id || ""}')">${c.boutique_id ? c.boutique_id.slice(0,8) + "…" : "—"}</td>
-        <td>${c.boutique_id ? `<button class="btn-renouv-ligne"
+        <td>${c.boutique_id ? `<div style="display:flex;gap:6px;">
+            <button class="btn-renouv-ligne"
               data-boutique-id="${c.boutique_id}"
               data-nom-boutique="${(boutique.nom_boutique || "").replace(/"/g, '&quot;')}"
               data-telephone="${boutique.telephone || ""}"
               style="padding:6px 10px;border:none;border-radius:6px;background:#25D366;
-                     color:#fff;font-weight:700;cursor:pointer;font-size:11px;">📱 Renouveler</button>` : "—"}</td>
+                     color:#fff;font-weight:700;cursor:pointer;font-size:11px;">📱 Renouveler</button>
+            <button class="btn-reset-mdp-ligne"
+              data-boutique-id="${c.boutique_id}"
+              data-nom-boutique="${(boutique.nom_boutique || "").replace(/"/g, '&quot;')}"
+              style="padding:6px 10px;border:none;border-radius:6px;background:#555;
+                     color:#fff;font-weight:700;cursor:pointer;font-size:11px;">🔑 Reset mdp</button>
+          </div>` : "—"}</td>
       </tr>`;
     }).join("");
 
@@ -352,6 +359,31 @@
         btn.dataset.boutiqueId, btn.dataset.nomBoutique, btn.dataset.telephone
       ));
     });
+
+    document.querySelectorAll(".btn-reset-mdp-ligne").forEach(btn => {
+      btn.addEventListener("click", () => reinitialiserMotDePasse(
+        btn.dataset.boutiqueId, btn.dataset.nomBoutique
+      ));
+    });
+  }
+
+  // ✅ AJOUT : réinitialisation du mot de passe d'une boutique par l'admin,
+  // pour débloquer un gérant qui a oublié son mot de passe sans devoir
+  // toucher directement à Supabase.
+  async function reinitialiserMotDePasse(boutiqueId, nomBoutique) {
+    if (!confirm(`Réinitialiser le mot de passe de "${nomBoutique}" ?\n\nLe gérant devra en définir un nouveau à sa prochaine connexion.`)) return;
+    try {
+      const r = await fetch("/api/admin_reset_mdp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mot_de_passe: MOT_DE_PASSE, boutique_id: boutiqueId })
+      });
+      const d = await r.json();
+      if (!r.ok || !d.succes) throw new Error(d.message || "Échec de la réinitialisation");
+      alert(`✅ Mot de passe réinitialisé pour "${nomBoutique}".`);
+    } catch (e) {
+      alert("❌ " + (e.message || e));
+    }
   }
 
   const LABEL_DUREE_WA = {30: '1 mois', 90: '3 mois', 365: '12 mois'};
