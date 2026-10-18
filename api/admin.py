@@ -34,8 +34,37 @@ class handler(BaseHTTPRequestHandler):
 
         if chemin.endswith("/admin_generer_code"):
             self._admin_generer_code(data)
+        elif chemin.endswith("/admin_reset_mdp"):
+            self._admin_reset_mdp(data)
         else:
             self._rep(404, {"succes": False, "message": "Endpoint inconnu"})
+
+    # ---------- admin_reset_mdp.py ----------
+    # Permet au DG principal (admin) de débloquer une boutique dont le mot de
+    # passe du dashboard a été oublié : on vide simplement le mot de passe en
+    # base. Au prochain accès, le site proposera d'en définir un nouveau, sans
+    # demander l'ancien (même logique que pour une boutique jamais configurée).
+    def _admin_reset_mdp(self, data):
+        try:
+            if not ADMIN_PASSWORD or data.get("mot_de_passe") != ADMIN_PASSWORD:
+                self._rep(401, {"succes": False, "message": "Mot de passe incorrect"})
+                return
+
+            boutique_id = (data.get("boutique_id") or "").strip()
+            if not boutique_id:
+                self._rep(400, {"succes": False, "message": "boutique_id manquant"})
+                return
+
+            supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+            boutique = supabase.table("boutiques").select("id").eq("id", boutique_id).execute().data
+            if not boutique:
+                self._rep(404, {"succes": False, "message": "Boutique introuvable"})
+                return
+
+            supabase.table("boutiques").update({"mot_de_passe": None}).eq("id", boutique_id).execute()
+            self._rep(200, {"succes": True, "message": "Mot de passe réinitialisé"})
+        except Exception as e:
+            self._rep(500, {"succes": False, "message": str(e)})
 
     # ---------- admin_generer_code.py ----------
     def _admin_generer_code(self, data):
