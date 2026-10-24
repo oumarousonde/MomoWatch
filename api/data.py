@@ -250,6 +250,22 @@ class handler(BaseHTTPRequestHandler):
                 self._rep(200, {"statut": "ok", "message": "service ignoré"})
                 return
 
+            # ✅ Anti-doublon serveur : si l'app renvoie une transaction déjà
+            # enregistrée (ex. coupure réseau juste après un premier envoi
+            # réussi, l'app croit avoir échoué et réessaie), on ne l'insère
+            # pas une 2e fois — on répond "ok" pour qu'elle sorte de la file.
+            transaction_id = data.get("transaction_id") or None
+            if transaction_id:
+                deja = supabase.table("transactions") \
+                    .select("id") \
+                    .eq("boutique_id", boutique_id) \
+                    .eq("transaction_id", transaction_id) \
+                    .execute().data
+                if deja:
+                    log("⏭️ Transaction déjà enregistrée (transaction_id=" + transaction_id + "), ignorée")
+                    self._rep(200, {"statut": "ok", "message": "déjà enregistrée"})
+                    return
+
             insert_data = {
                 "boutique_id": boutique_id,
                 "client":      data.get("client", "Inconnu"),
@@ -257,7 +273,8 @@ class handler(BaseHTTPRequestHandler):
                 "montant":     float(str(data.get("montant", 0)).replace(" ", "")),
                 "type":        data.get("type", ""),
                 "operateur":   data.get("operateur", ""),
-                "solde_apres": data.get("solde_apres")
+                "solde_apres": data.get("solde_apres"),
+                "transaction_id": transaction_id
             }
             log("📤 Insertion Supabase : " + json.dumps(insert_data))
 
