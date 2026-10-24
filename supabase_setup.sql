@@ -61,6 +61,12 @@ alter table transactions add column if not exists type_service text;
 -- Si la table existait déjà avant l'ajout du numéro de téléphone :
 alter table transactions add column if not exists telephone_client text;
 
+-- Si la table existait déjà avant l'ajout de l'anti-doublon serveur :
+-- identifiant de transaction extrait du SMS (ex. "PP261023.2244.86784219"),
+-- utilisé pour ne jamais enregistrer deux fois le même SMS si l'app le
+-- renvoie après une coupure réseau juste après l'envoi.
+alter table transactions add column if not exists transaction_id text;
+
 -- ── 4. TELEPHONES_BOUTIQUE (plusieurs puces par boutique) ────
 create table if not exists telephones_boutique (
     id uuid default gen_random_uuid() primary key,
@@ -99,9 +105,13 @@ alter table transactions enable row level security;
 alter table telephones_boutique enable row level security;
 
 -- Accès complet via la clé service_role (backend Vercel)
+drop policy if exists "service_role_boutiques" on boutiques;
 create policy "service_role_boutiques" on boutiques for all using (true);
+drop policy if exists "service_role_abonnements" on abonnements;
 create policy "service_role_abonnements" on abonnements for all using (true);
+drop policy if exists "service_role_transactions" on transactions;
 create policy "service_role_transactions" on transactions for all using (true);
+drop policy if exists "service_role_telephones" on telephones_boutique;
 create policy "service_role_telephones" on telephones_boutique for all using (true);
 
 -- ── 7. FONCTION : vérifier et activer un code ────────────────
@@ -115,13 +125,29 @@ declare
     v_date_depart timestamp with time zone;
     v_expiration_en_cours timestamp with time zone;
 begin
-    -- Chercher le code
+    -- Chercher le code, quel que soit son statut, pour pouvoir donner un
+    -- message précis (inexistant / déjà utilisé / périmé) plutôt qu'un seul
+    -- message générique pour les trois cas.
     select * into v_abonnement
     from abonnements
-    where code = p_code and statut = 'disponible';
+    where code = p_code;
 
     if not found then
-        return json_build_object('succes', false, 'message', 'Code invalide ou déjà utilisé');
+        return json_build_object('succes', false, 'message', 'Ce code n''existe pas. Vérifie que tu l''as bien recopié.');
+    end if;
+
+    if v_abonnement.statut = 'actif' then
+        if v_abonnement.boutique_id = p_boutique_id then
+            return json_build_object('succes', false, 'message', 'Ce code est déjà celui de cette boutique.');
+        elsif v_abonnement.date_expiration > now() then
+            return json_build_object('succes', false, 'message', 'Ce code est déjà utilisé par une autre boutique.');
+        else
+            return json_build_object('succes', false, 'message', 'Ce code a déjà été utilisé et sa période est terminée. Il faut un nouveau code.');
+        end if;
+    end if;
+
+    if v_abonnement.statut != 'disponible' then
+        return json_build_object('succes', false, 'message', 'Ce code n''est pas disponible.');
     end if;
 
     -- Si cette boutique a déjà un abonnement actif ET pas encore expiré, les
@@ -137,6 +163,17 @@ begin
     order by date_expiration desc
     limit 1;
 
+    -- Si la boutique a déjà un abonnement actif avec PLUS de 7 jours restants,
+    -- on refuse le renouvellement : la même règle que sur l'application
+    -- Android, pour qu'elle ne puisse pas être contournée via le site.
+    if v_expiration_en_cours is not null
+       and v_expiration_en_cours > now() + interval '7 days' then
+        return json_build_object(
+            'succes', false,
+            'message', 'Impossible de renouveler, il faut attendre moins de 7 jours avant la date d''expiration'
+        );
+    end if;
+
     v_date_depart := coalesce(v_expiration_en_cours, now());
     v_date_expiration := v_date_depart + (v_abonnement.duree_jours || ' days')::interval;
 
@@ -151,7 +188,8 @@ begin
     return json_build_object(
         'succes', true,
         'message', 'Code activé avec succès',
-        'expire_le', v_date_expiration
+        'expire_le', v_date_expiration,
+        'duree_jours', v_abonnement.duree_jours
     );
 end;
 $$ language plpgsql security definer;
@@ -218,6 +256,7 @@ create table if not exists alertes_suppression (
 );
 create index if not exists idx_alertes_boutique on alertes_suppression (boutique_id, vue);
 alter table alertes_suppression enable row level security;
+drop policy if exists "service_role_alertes" on alertes_suppression;
 create policy "service_role_alertes" on alertes_suppression for all using (true);
 
 -- ── AJOUT : notifications push du DG (téléphones abonnés) ────────
@@ -231,6 +270,7 @@ create table if not exists push_abonnements (
 );
 create index if not exists idx_push_boutique on push_abonnements (boutique_id);
 alter table push_abonnements enable row level security;
+drop policy if exists "service_role_push" on push_abonnements;
 create policy "service_role_push" on push_abonnements for all using (true);
 
 -- ── AJOUT : préférences de notifications du DG + état des alertes ────────
@@ -238,3 +278,35 @@ create policy "service_role_push" on push_abonnements for all using (true);
 -- notif_etat  : mémoire du serveur pour ne pas répéter la même alerte en boucle
 alter table boutiques add column if not exists notif_prefs jsonb default '{}'::jsonb;
 alter table boutiques add column if not exists notif_etat jsonb default '{}'::jsonb;
+
+-- ── AJOUT : protection contre le devinage de code d'abonnement ────────
+-- Compte les tentatives de code échouées par adresse IP (pas par code),
+-- pour bloquer temporairement après plusieurs échecs rapprochés.
+create table if not exists tentatives_activation (
+    ip text primary key,
+    echecs int not null default 0,
+    dernier_echec timestamp with time zone not null default now()
+);
+alter table tentatives_activation enable row level security;
+drop policy if exists "service_role_tentatives" on tentatives_activation;
+create policy "service_role_tentatives" on tentatives_activation for all using (true);
+
+-- ── AJOUT : index pour retrouver vite les codes d'essai déjà utilisés ────
+create index if not exists idx_abonnements_code_prefix on abonnements (code) where code like 'ESSAI-%';
+
+-- ── AJOUT : compte DG multi-boutique ────────────────────────────
+-- Un compte DG (téléphone + mot de passe) peut être lié à plusieurs
+-- boutiques. Une boutique reste utilisable seule (dg_id peut rester vide) ;
+-- la lier à un compte DG permet de voir toutes ses boutiques d'un coup.
+create table if not exists comptes_dg (
+    id uuid default gen_random_uuid() primary key,
+    telephone text unique not null,
+    mot_de_passe text not null,
+    created_at timestamp with time zone default now()
+);
+alter table comptes_dg enable row level security;
+drop policy if exists "service_role_comptes_dg" on comptes_dg;
+create policy "service_role_comptes_dg" on comptes_dg for all using (true);
+
+alter table boutiques add column if not exists dg_id uuid references comptes_dg(id);
+create index if not exists idx_boutiques_dg on boutiques (dg_id);

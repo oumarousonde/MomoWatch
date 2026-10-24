@@ -177,6 +177,9 @@
       <button class="onglet-code" data-filtre="expire">Expirés</button>
       <button class="onglet-code" data-filtre="tous">Tous</button>
     </div>
+    <input type="text" id="recherche-boutique" placeholder="🔍 Rechercher par DG, numéro ou nom de boutique…"
+           style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid #2A2A2A;
+                  background:#0E0E0E;color:#fff;font-size:13px;margin-bottom:14px;box-sizing:border-box;">
     <div class="table-scroll">
       <table>
         <thead>
@@ -260,6 +263,7 @@
 
   let tousLesCodes = [];
   let filtreActuel = "en_cours";
+  let termeRecherche = "";
 
   function statutReel(c) {
     // Même logique que dans afficherCodes() pour rester cohérent : un code
@@ -269,19 +273,40 @@
     return (expire && expire < new Date()) ? "expire" : "en_cours";
   }
 
+  // ✅ AJOUT : recherche par nom de boutique, nom du DG ou numéro de
+  // téléphone, combinée avec le filtre d'onglet déjà en place (En cours /
+  // Expirés / Tous). Insensible à la casse et aux espaces superflus.
+  function correspondRecherche(c, terme) {
+    if (!terme) return true;
+    const boutique = c.boutiques || {};
+    const champs = [boutique.nom_boutique, boutique.nom_dg, boutique.telephone];
+    return champs.some(v => (v || "").toLowerCase().includes(terme));
+  }
+
   function filtrerCodes(filtre) {
     filtreActuel = filtre;
     document.querySelectorAll(".onglet-code").forEach(btn => {
       btn.classList.toggle("actif-onglet", btn.dataset.filtre === filtre);
     });
-    const sousEnsemble = filtre === "tous"
+    appliquerFiltres();
+  }
+
+  function appliquerFiltres() {
+    const parStatut = filtreActuel === "tous"
       ? tousLesCodes
-      : tousLesCodes.filter(c => statutReel(c) === filtre);
-    afficherCodes(sousEnsemble);
+      : tousLesCodes.filter(c => statutReel(c) === filtreActuel);
+    const terme = termeRecherche.trim().toLowerCase();
+    const resultat = parStatut.filter(c => correspondRecherche(c, terme));
+    afficherCodes(resultat);
   }
 
   document.querySelectorAll(".onglet-code").forEach(btn => {
     btn.addEventListener("click", () => filtrerCodes(btn.dataset.filtre));
+  });
+
+  document.getElementById("recherche-boutique").addEventListener("input", (e) => {
+    termeRecherche = e.target.value;
+    appliquerFiltres();
   });
 
   function dureeLabel(j) {

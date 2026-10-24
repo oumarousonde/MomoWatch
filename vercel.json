@@ -27,6 +27,7 @@
 
     { "src": "/api/admin_generer_code", "dest": "/api/admin.py" },
     { "src": "/api/admin_liste", "dest": "/api/admin.py" },
+    { "src": "/api/admin_reset_mdp", "dest": "/api/admin.py" },
 
     { "src": "/", "dest": "/index.html" },
     { "src": "/dashboard", "dest": "/dashboard.html" },
