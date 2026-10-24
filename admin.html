@@ -273,14 +273,24 @@
     return (expire && expire < new Date()) ? "expire" : "en_cours";
   }
 
+  // ✅ AJOUT : insensible aux accents en plus de la casse, pour que
+  // "Oumarou SONDE" et "OuMarou sondé" retrouvent la même personne.
+  function normaliser(texte) {
+    return (texte || "")
+      .normalize("NFD").replace(/[̀-ͯ]/g, "") // enlève les accents
+      .toLowerCase()
+      .replace(/\s+/g, " ").trim();
+  }
+
   // ✅ AJOUT : recherche par nom de boutique, nom du DG ou numéro de
   // téléphone, combinée avec le filtre d'onglet déjà en place (En cours /
-  // Expirés / Tous). Insensible à la casse et aux espaces superflus.
+  // Expirés / Tous). Insensible à la casse, aux accents et aux espaces
+  // superflus.
   function correspondRecherche(c, terme) {
     if (!terme) return true;
     const boutique = c.boutiques || {};
     const champs = [boutique.nom_boutique, boutique.nom_dg, boutique.telephone];
-    return champs.some(v => (v || "").toLowerCase().includes(terme));
+    return champs.some(v => normaliser(v).includes(terme));
   }
 
   function filtrerCodes(filtre) {
@@ -295,7 +305,7 @@
     const parStatut = filtreActuel === "tous"
       ? tousLesCodes
       : tousLesCodes.filter(c => statutReel(c) === filtreActuel);
-    const terme = termeRecherche.trim().toLowerCase();
+    const terme = normaliser(termeRecherche);
     const resultat = parStatut.filter(c => correspondRecherche(c, terme));
     afficherCodes(resultat);
   }
